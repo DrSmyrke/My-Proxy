@@ -1,0 +1,114 @@
+*, *:before, *:after { transition: .25s ease-in-out; }
+
+body{
+	transition: none;
+	background: #E6E4E7;
+	font:small Verdana,Sans-serif;
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome and Opera */
+}
+hr{
+	border: 0px dashed;
+	height: 1px;
+	background-image: -webkit-linear-gradient(left, #fff, #000, #fff);
+	background-image: -moz-linear-gradient(left, #fff, #000, #fff);
+	background-image: -ms-linear-gradient(left, #fff, #000, #fff);
+	background-image: -o-linear-gradient(left, #fff, #000, #fff);
+}
+a{ color: #459EBC; }
+.logo{
+	font-size:24pt;
+	color:#383152;
+	width: 300px;
+	display: inline-block;
+	vertical-align: center;
+}
+.info i{
+	color: gray;
+	fint-style: italic;
+	font-size:8pt;
+}
+.content{
+	width: 1170px;
+	margin: auto;
+	text-align: center;
+}
+.menu{ text-align: center; }
+.button{
+	margin: 3px 5px;
+	border: 2px dashed #459EBC;
+	border-radius: 15px;
+	color: black;
+	text-decoration: none;
+	text-align: center;
+	padding: 3px 15px;
+	display: inline-block;
+}
+table{ border-collapse: collapse; }
+tr{ border-bottom: 1px solid silver; }
+tr:last-child{ border: none; }
+legend{
+	text-transform: uppercase;
+	margin: 0px;
+	color: #7D7C81;
+	position: relative;
+	top: -12px;
+	left: -12px;
+}
+.block table{ width: 100%; }
+.block{
+	width: 300px;
+	border: none;
+	display: inline-block;
+	background: white;
+	padding: 10px;
+	border-radius: 5px;
+	vertical-align: top;
+	margin: 10px;
+	text-align: left;
+}
+input[type="text"]{
+	border: none;
+	padding: 3px;
+	background: white;
+}
+input[type="button"], input[type="submit"]{ transition: none; }
+input[type=checkbox]{ display: none; }
+
+.valgreen{
+	text-shadow:0px 0px 5px #61FF62;
+	color:#00FF03;
+}
+.valorange{
+	text-shadow:0px 0px 5px #FFB67B;
+	color:#FF7200;
+}
+.action{
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	left: 0px;
+	top: 0px;
+	background: rgba(255,255,255, 0.8);
+	display: none;
+	font-size: 18pt;
+	font-weight: bold;
+}
+
+@media only screen and (max-width: 685px){
+	.block { width: 95%; margin: 50px auto; display: block; }
+}
+
+@media only screen and (max-width: 1170px){
+	.content {width: 95%;}
+}
+/*
+@media only screen and (orientation:portrait){
+	.menu .a {display: block; width: 95%; margin: auto; margin-bottom: 5px;}
+}
+*/

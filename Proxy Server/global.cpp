@@ -61,8 +61,38 @@ namespace app {
 		if( app::conf.logFile.isEmpty() ) return;
 		FILE* f;
 		f = fopen(app::conf.logFile.toUtf8().data(),"a+");
-		fwrite(str.toUtf8().data(),str.length(),1,f);
+		fwrite(str.toUtf8().data(),static_cast<size_t>(str.length()),1,f);
 		fclose(f);
+	}
+
+	QString getHtmlPage(const QString &title, const QString &content)
+	{
+		//QString data = app::defaultHtmlData;
+		//data.replace("===TITLE===",title);
+		//data.replace("===CONTENT===",content);
+		//return data;
+	}
+
+	bool addUser(const QString &login, const QString &pass)
+	{
+		bool res = true;
+		auto hash = mf::md5(pass.toLatin1());
+		hash.append( app::conf.codeWord );
+		User user;
+		user.login = login;
+		user.pass = mf::md5( hash );
+		app::conf.users.push_back( user );
+		//TODO: Реализовать добавление в БД
+		return res;
+	}
+
+	bool passIsValid(const QString &pass, const QString &hash)
+	{
+		bool res = false;
+		auto newhash = mf::md5(pass.toLatin1());
+		newhash.append( app::conf.codeWord );
+		res = ( hash == mf::md5( newhash ) )?true:false;
+		return res;
 	}
 
 }

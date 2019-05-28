@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include "global.h"
+#include "http.h"
 
 class Client : public QObject
 {
@@ -19,7 +21,12 @@ private slots:
 private:
 	QTcpSocket* m_pClient;
 	QTcpSocket* m_pTarget;
-	uint8_t m_proxyType;
+	bool m_tunnel = false;
+	bool m_auth = false;
+
+	void sendResponse(const uint16_t code, const QString &comment);
+	void sendNoAuth();
+	void sendToClient(const QByteArray &data);
 };
 
 #endif // CLIENT_H

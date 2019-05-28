@@ -30,6 +30,13 @@ void ThreadManager::incomingConnection(qintptr handle)
 		}
 	}
 
+	for( auto clientManager:m_clientsManager ){
+		if( clientManager->getClientsCount() == 0 ){
+			clientManager->slot_stop();
+			m_clientsManager.removeOne( clientManager );
+			break;
+		}
+	}
 }
 
 void ThreadManager::stop()

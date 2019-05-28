@@ -17,6 +17,8 @@ SOURCES += main.cpp \
     client.cpp \
     clientsmanager.cpp \
     global.cpp \
+    http.cpp \
+    myfunctions.cpp \
     server.cpp \
     threadmanager.cpp
 
@@ -24,5 +26,10 @@ HEADERS += \
     client.h \
     clientsmanager.h \
     global.h \
+    http.h \
+    myfunctions.h \
     server.h \
     threadmanager.h
+
+RESOURCES += \
+    resources.qrc
