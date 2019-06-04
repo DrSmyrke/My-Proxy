@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <QSettings>
+#include <QDebug>
 
 namespace app {
 	Config conf;
@@ -12,6 +13,17 @@ namespace app {
 
 		app::conf.maxThreads = settings.value("SERVER/maxThreads",app::conf.maxThreads).toUInt();
 		app::conf.port = settings.value("SERVER/port",app::conf.port).toUInt();
+
+		QFile ftop(":///pages/top.html");
+		if(ftop.open(QIODevice::ReadOnly | QIODevice::Text)){
+			while (!ftop.atEnd()) app::conf.page.top.append( ftop.readAll() );
+			ftop.close();
+		}
+		QFile fbottom(":///pages/bottom.html");
+		if(fbottom.open(QIODevice::ReadOnly | QIODevice::Text)){
+			while (!fbottom.atEnd()) app::conf.page.bottom.append( fbottom.readAll() );
+			fbottom.close();
+		}
 	}
 
 	void saveSettings()
@@ -65,12 +77,16 @@ namespace app {
 		fclose(f);
 	}
 
-	QString getHtmlPage(const QString &title, const QString &content)
+	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content)
 	{
-		//QString data = app::defaultHtmlData;
-		//data.replace("===TITLE===",title);
-		//data.replace("===CONTENT===",content);
-		//return data;
+		QByteArray ba;
+			ba.append( app::conf.page.top );
+			ba.append( "		<title>-= " );
+			ba.append( title );
+			ba.append( " =-</title>\n	</head>\n<body>" );
+			ba.append( content );
+			ba.append( app::conf.page.bottom );
+		return ba;
 	}
 
 	bool addUser(const QString &login, const QString &pass)
@@ -92,6 +108,18 @@ namespace app {
 		auto newhash = mf::md5(pass.toLatin1());
 		newhash.append( app::conf.codeWord );
 		res = ( hash == mf::md5( newhash ) )?true:false;
+		return res;
+	}
+
+	bool chkAuth(const QString &login, const QString &pass)
+	{
+		bool res = false;
+		for( auto user:app::conf.users){
+			if( user.login == login ){
+				if( app::passIsValid( pass, user.pass ) ) res = true;
+				break;
+			}
+		}
 		return res;
 	}
 

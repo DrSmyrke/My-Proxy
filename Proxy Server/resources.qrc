@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/pages">
-        <file>assets/index.html</file>
+        <file alias="bottom.html">assets/bottom.html</file>
+        <file alias="top.html">assets/top.html</file>
     </qresource>
 </RCC>

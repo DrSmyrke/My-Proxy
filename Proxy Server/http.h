@@ -11,6 +11,13 @@ namespace http{
 			NTLM,
 		};
 	};
+	struct Proto{
+		enum{
+			UNKNOW,
+			HTTP,
+			HTTPS,
+		};
+	};
 	struct pkt{
 		struct {
 			struct {

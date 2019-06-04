@@ -20,10 +20,15 @@ struct User{
 	uint8_t group = UserGrpups::users;
 };
 
+struct HtmlPage{
+	QByteArray top;
+	QByteArray bottom;
+};
+
 struct Config{
 	bool verbose						= false;
 	uint8_t logLevel					= 3;
-	QString logFile						= "/tmp/webProxy.log";
+	QString logFile						= "webProxy.log";
 	uint8_t maxThreads					= 3;
 	uint8_t maxClients					= 37;
 	uint16_t port						= 7300;
@@ -31,6 +36,8 @@ struct Config{
 	std::vector<User> users;
 	uint8_t authMetod					= http::AuthMethod::Basic;
 	QString codeWord					= "DeadBeef";
+	HtmlPage page;
+	uint8_t maxFailedAuthorization		= 5;
 };
 
 namespace app {
@@ -40,9 +47,10 @@ namespace app {
 	void saveSettings();
 	bool parsArgs(int argc, char *argv[]);
 	void setLog(const uint8_t logLevel, const QString &mess);
-	QString getHtmlPage(const QString &title, const QString &content);
+	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content);
 	bool addUser(const QString &login, const QString &pass);
 	bool passIsValid(const QString &pass, const QString &hash);
+	bool chkAuth(const QString &login, const QString &pass);
 }
 
 #endif // GLOBAL_H

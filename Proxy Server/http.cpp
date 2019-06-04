@@ -74,7 +74,7 @@ namespace http{
 		}
 		packet.body.rawData.append( miniBuff );
 
-		if( packet.head.valid && packet.head.contLen == (unsigned)packet.body.rawData.size() ) packet.body.valid = true;
+		if( packet.head.valid && packet.head.contLen == packet.body.rawData.size() ) packet.body.valid = true;
 
 		return packet;
 	}
@@ -84,7 +84,11 @@ namespace http{
 		pkt.head.contLen = pkt.body.rawData.size();
 
 		QByteArray ba;
-		ba.append( pkt.head.request.method + " " + pkt.head.request.target + " " + pkt.head.request.proto + "\r\n" );
+		if( pkt.head.response.code > 0 ){
+			ba.append( pkt.head.response.proto + " " + QString::number(pkt.head.response.code) + " " + pkt.head.response.comment + "\r\n" );
+		}else{
+			ba.append( pkt.head.request.method + " " + pkt.head.request.target + " " + pkt.head.request.proto + "\r\n" );
+		}
 		if( !pkt.head.host.isEmpty() ) ba.append( "Host: " + pkt.head.host + "\r\n" );
 		if( !pkt.head.accept.isEmpty() ) ba.append( "Accept: " + pkt.head.accept + "\r\n" );
 		if( !pkt.head.proxyAuthenticate.isEmpty() ) ba.append( "Proxy-Authenticate: " + pkt.head.proxyAuthenticate + "\r\n" );
