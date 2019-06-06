@@ -19,6 +19,8 @@ signals:
 private slots:
 	void slot_clientReadyRead();
 	void slot_targetReadyRead();
+	void slot_targetDisconnected();
+	void slot_clientDisconnected();
 private:
 	QTcpSocket* m_pClient;
 	QTcpSocket* m_pTarget;

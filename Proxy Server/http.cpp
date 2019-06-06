@@ -79,7 +79,7 @@ namespace http{
 		return packet;
 	}
 
-	QByteArray genHttpHeader(pkt &pkt)
+	QByteArray buildPkt(pkt &pkt)
 	{
 		pkt.head.contLen = pkt.body.rawData.size();
 

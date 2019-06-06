@@ -16,6 +16,8 @@ Client::Client(QObject *parent) : QObject(parent)
 
 	connect( m_pClient, &QTcpSocket::readyRead, this, &Client::slot_clientReadyRead );
 	connect( m_pTarget, &QTcpSocket::readyRead, this, &Client::slot_targetReadyRead );
+	connect( m_pTarget, &QTcpSocket::disconnected, this, &Client::slot_targetDisconnected );
+	connect( m_pClient, &QTcpSocket::disconnected, this, &Client::slot_clientDisconnected );
 }
 
 void Client::setSocketDescriptor(qintptr socketDescriptor)
@@ -59,6 +61,7 @@ void Client::slot_clientReadyRead()
 		sendResponse( 400, "Bad Request" );
 		return;
 	}
+
 	if( !pkt.head.proxyAuthorization.isEmpty() ) parsAuth( pkt.head.proxyAuthorization );
 	if( !m_auth ){
 		if( failedAuthorization >= app::conf.maxFailedAuthorization ){
@@ -69,6 +72,15 @@ void Client::slot_clientReadyRead()
 		sendNoAuth();
 		return;
 	}
+
+	if( pkt.head.isRequest ){
+		//if( pkt.head.request.target == "config:73" ){
+		//	sendResponse( 200, "Connection established" );
+		//}
+		//qDebug()<<http::buildPkt( pkt );
+	}
+
+
 	//TODO: Реализовать ограничение колличество соединений на клиента	sendResponse(429,"Too Many Requests");
 
 
@@ -98,15 +110,11 @@ void Client::slot_clientReadyRead()
 				path.replace( " ", "%20" );
 			}
 			app::setLog(3,QString("WebProxyClient::slot_clientReadyRead HTTP Request to [%1:%2] %3").arg(addr).arg(port).arg(path));
-			QString srcStr = pkt.head.request.method + " " + pkt.head.request.target + " " + pkt.head.request.proto;
-			QString targetStr = pkt.head.request.method + " " + path + " " + pkt.head.request.proto;
-			buff.replace( srcStr.toUtf8(), targetStr.toUtf8() );
-			srcStr = "Proxy-Authorization: " + pkt.head.proxyAuthorization + "\r\n";
-			targetStr = "";
-			buff.replace( srcStr.toUtf8(), targetStr.toUtf8() );
-			srcStr = "Connection: keep-alive\r\n";
-			targetStr = "Connection: close\r\n";
-			buff.replace( srcStr.toUtf8(), targetStr.toUtf8() );
+			pkt.head.request.target = path;
+			pkt.head.proxyAuthorization.clear();
+			//pkt.head.connection = "close";
+			buff.clear();
+			buff.append( http::buildPkt( pkt ) );
 			m_proto = http::Proto::HTTP;
 		}
 	}
@@ -148,7 +156,6 @@ void Client::slot_clientReadyRead()
 						sendResponse( 200, "Connection established" );
 					}
 					if( m_proto == http::Proto::HTTP ){
-						//TODO: Реализовать подмену заголовка и анонимный режим (пересборка пакета)
 						m_pTarget->write( buff );
 						m_pTarget->waitForBytesWritten(100);
 					}
@@ -179,7 +186,7 @@ void Client::slot_targetReadyRead()
 		sendToClient( buff );
 	}
 	if( m_proto == http::Proto::HTTP ){
-		//TODO: Реализовать подмену заголовка и анонимный режим (пересборка пакета)
+		//TODO: Реализовать фильтрацию трафика
 		while( m_pTarget->bytesAvailable() ) buff.append( m_pTarget->readAll() );
 		app::setLog(5,QString("WebProxyClient::slot_targetReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
 
@@ -187,8 +194,23 @@ void Client::slot_targetReadyRead()
 
 		//block list end
 
+		//qDebug()<<"slot_targetReadyRead"<<buff;
+
 		sendToClient( buff );
 	}
+}
+
+void Client::slot_targetDisconnected()
+{
+	app::setLog(5,QString("Client::Target disconnected"));
+	stop();
+}
+
+void Client::slot_clientDisconnected()
+{
+	app::setLog(5,QString("Client::Client disconnected"));
+	if( m_pTarget->isOpen() ) m_pTarget->close();
+	stop();
 }
 
 void Client::sendResponse(const uint16_t code, const QString &comment)
@@ -198,7 +220,7 @@ void Client::sendResponse(const uint16_t code, const QString &comment)
 	pkt.head.response.comment = comment;
 	pkt.body.rawData.append( app::getHtmlPage("Service page",QString("<h1>" + comment + "</h1>").toLatin1()) );
 	app::setLog(3,QString("WebProxyClient::sendResponse [%1] %2").arg(code).arg(comment));
-	sendToClient( http::genHttpHeader(pkt) );
+	sendToClient( http::buildPkt(pkt) );
 }
 
 void Client::sendNoAuth()
@@ -212,7 +234,7 @@ void Client::sendNoAuth()
 		//case  http::AuthMethod::Digest:	pkt.head.proxyAuthenticate = "Digest realm=ProxyAuth";	break;
 	}
 	pkt.body.rawData.append( app::getHtmlPage("Service page","<h1>Proxy Authentication Required</h1>") );
-	sendToClient( http::genHttpHeader(pkt) );
+	sendToClient( http::buildPkt(pkt) );
 }
 
 void Client::sendNoAccess()
@@ -222,7 +244,7 @@ void Client::sendNoAccess()
 	pkt.head.response.comment = "Forbidden";
 	//TODO: Сделать вывод общего времени блокировки
 	pkt.body.rawData.append( app::getHtmlPage("Service page","<h1>Too many failed authorization attempts, access for your IP is blocked for another 30 minutes. Total blocking time:</h1>") );
-	sendToClient( http::genHttpHeader(pkt) );
+	sendToClient( http::buildPkt(pkt) );
 	//TODO: Сделать блокировку по IP еще на 30 минут
 }
 

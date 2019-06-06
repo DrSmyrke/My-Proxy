@@ -57,7 +57,7 @@ namespace http{
 	};
 
 	pkt parsPkt(const QByteArray &data);
-	QByteArray genHttpHeader(http::pkt &pkt);
+	QByteArray buildPkt(http::pkt &pkt);
 };
 
 #endif // HTTP_H
