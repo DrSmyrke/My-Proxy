@@ -74,12 +74,6 @@ void Client::slot_clientReadyRead()
 		return;
 	}
 
-	if( pkt.head.isRequest ){
-		//if( pkt.head.request.target == "config:73" ){
-		//	sendResponse( 200, "Connection established" );
-		//}
-		//qDebug()<<http::buildPkt( pkt );
-	}
 
 
 	//TODO: Реализовать ограничение колличество соединений на клиента	sendResponse(429,"Too Many Requests");
@@ -88,8 +82,6 @@ void Client::slot_clientReadyRead()
 	QString addr;
 	QString path;
 	uint16_t port = 80;
-
-	//2019.06.10 [23:27:55] WebProxyClient::slot_clientReadyRead HTTP Request to [config:73] /
 
 	if( pkt.head.valid && pkt.head.isRequest ){
 		if( pkt.head.request.method == "CONNECT" ){
@@ -120,6 +112,31 @@ void Client::slot_clientReadyRead()
 			m_proto = http::Proto::HTTP;
 		}
 	}
+
+
+
+
+
+
+
+	if( pkt.head.isRequest ){
+		//if( pkt.head.request.target == "config:73" ){
+		//	sendResponse( 200, "Connection established" );
+		//}
+		//qDebug()<<http::buildPkt( pkt );
+	}
+
+
+
+
+
+
+
+
+
+
+
+
 
 	if( m_proto == http::Proto::UNKNOW ){
 		sendResponse( 400, "Bad Request" );
