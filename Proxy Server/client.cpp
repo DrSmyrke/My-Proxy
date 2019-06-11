@@ -119,10 +119,12 @@ void Client::slot_clientReadyRead()
 
 
 
-	if( pkt.head.isRequest ){
-		//if( pkt.head.request.target == "config:73" ){
-		//	sendResponse( 200, "Connection established" );
-		//}
+	if( pkt.head.isRequest && m_proto == http::Proto::HTTP ){
+		if( pkt.head.request.target == "config:73" ){
+			sendResponse( 200, "Test content" );
+			if( m_pTarget->isOpen() ) m_pTarget->close();
+			return;
+		}
 		//qDebug()<<http::buildPkt( pkt );
 	}
 
