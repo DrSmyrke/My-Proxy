@@ -37,6 +37,8 @@ void ThreadManager::incomingConnection(qintptr handle)
 			break;
 		}
 	}
+
+	clientsRecount();
 }
 
 void ThreadManager::stop()
@@ -61,9 +63,27 @@ void ThreadManager::newThread(qintptr handle)
 	connect( thread, &QThread::started, manager, &ClientsManager::slot_start );
 	connect( manager, &ClientsManager::signal_finished ,thread, &QThread::quit );
 	connect( this, &ThreadManager::signal_stopAll, manager, &ClientsManager::slot_stop );
-	connect( manager, &ClientsManager::signal_finished, manager, &ClientsManager::deleteLater );
+	connect( manager, &ClientsManager::signal_recount, this, &ThreadManager::clientsRecount);
+	connect( manager, &ClientsManager::signal_finished, this, [this](ClientsManager* cmanager){
+		m_clientsManager.removeOne(cmanager);
+		cmanager->deleteLater();
+		clientsRecount();
+	} );
 	connect( thread, &QThread::finished, thread, &QThread::deleteLater );
 
 	thread->start();
 	manager->incomingConnection( handle );
+
+	m_clientsManager.append( manager );
+}
+
+void ThreadManager::clientsRecount()
+{
+	app::state.threads.clear();
+	app::usersConnectionsClear();
+
+	for( auto clientManager:m_clientsManager ){
+		app::state.threads.push_back( clientManager->getClientsCount() );
+		clientManager->clientsRecount();
+	}
 }

@@ -43,23 +43,13 @@ void Client::slot_clientReadyRead()
 	//TODO: Обработка блокировки и отключения клиента	sendResponse( 423, "Locked" );
 
 	if( m_pTarget->isOpen() ){
-		if( m_pTarget->state() != QAbstractSocket::ConnectedState ) m_pTarget->waitForConnected();
-		if( m_proto == http::Proto::HTTPS ){
-			app::setLog(5,QString("WebProxyClient::slot_clientReadyRead tunnel send %1 bytes to [%2:%3]").arg(buff.size()).arg(m_pTarget->peerAddress().toString()).arg(m_pTarget->peerPort()));
-			m_pTarget->write( buff );
-			m_pTarget->waitForBytesWritten(100);
-		}
-		if( m_proto == http::Proto::HTTP ){
-			//TODO: Реализовать подмену заголовка и анонимный режим (пересборка пакета)
-			m_pTarget->write( buff );
-			m_pTarget->waitForBytesWritten(100);
-		}
+		sendToTarget( buff );
 		return;
 	}
 
 	auto pkt = http::parsPkt( buff );
 	if( !pkt.head.valid ){
-		sendResponse( 400, "Bad Request" );
+		sendResponse( 400, "<h1>Bad Request</h1>" );
 		return;
 	}
 
@@ -94,7 +84,7 @@ void Client::slot_clientReadyRead()
 		if( pkt.head.request.method == "GET" || pkt.head.request.method == "POST" ){
 			QUrl url(pkt.head.request.target);
 			if( !url.isValid() ){
-				sendResponse( 400, "Bad Request" );
+				sendResponse( 400, "<h1>Bad Request</h1>" );
 				return;
 			}else{
 				addr = url.host();
@@ -110,7 +100,12 @@ void Client::slot_clientReadyRead()
 			buff.clear();
 			buff.append( http::buildPkt( pkt ) );
 			m_proto = http::Proto::HTTP;
+			app::addOpenUrl(url);
 		}
+	}
+
+	if( pkt.head.isRequest && m_proto != http::Proto::UNKNOW ){
+		app::addOpenAddr( addr );
 	}
 
 
@@ -120,12 +115,29 @@ void Client::slot_clientReadyRead()
 
 
 	if( pkt.head.isRequest && m_proto == http::Proto::HTTP ){
-		if( pkt.head.request.target == "config:73" ){
-			sendResponse( 200, "Test content" );
+		if( pkt.head.host == "config:73" ){
 			if( m_pTarget->isOpen() ) m_pTarget->close();
+			m_tunnel = false;
+			bool error = true;
+
+			if( pkt.head.request.target == "/" ){
+				sendResponse( 200, "Test content" );
+				error = false;
+			}
+			if( pkt.head.request.target == "/state" ){
+				sendResponse( 200, app::getStatePage() );
+				error = false;
+			}
+			if( pkt.head.request.target == "/admin" ){
+				sendResponse( 200, app::getAdminPage() );
+				error = false;
+			}
+
+			if( error ) sendResponse( 502, "<h1>Bad Gateway</h1>" );
 			return;
 		}
 		//qDebug()<<http::buildPkt( pkt );
+		//qDebug()<<pkt.head.request.target<<pkt.head.host;
 	}
 
 
@@ -141,22 +153,13 @@ void Client::slot_clientReadyRead()
 
 
 	if( m_proto == http::Proto::UNKNOW ){
-		sendResponse( 400, "Bad Request" );
+		sendResponse( 400, "<h1>Bad Request</h1>" );
 		if( m_pTarget->isOpen() ) m_pTarget->close();
 		return;
 	}
 
 	if( m_pTarget->isOpen() ){
-		if( m_pTarget->state() != QAbstractSocket::ConnectedState ) m_pTarget->waitForConnected();
-		if( m_proto == http::Proto::HTTPS ){
-			m_pTarget->write( buff );
-			m_pTarget->waitForBytesWritten(100);
-		}
-		if( m_proto == http::Proto::HTTP ){
-			//TODO: Реализовать подмену заголовка и анонимный режим (пересборка пакета)
-			m_pTarget->write( buff );
-			m_pTarget->waitForBytesWritten(100);
-		}
+		sendToTarget( buff );
 	}else{
 		app::setLog(4,QString("WebProxyClient::slot_clientReadyRead Connecting to [%1:%2]").arg(addr).arg(port));
 		auto info = QHostInfo::fromName( addr );
@@ -174,7 +177,7 @@ void Client::slot_clientReadyRead()
 					if( m_pTarget->state() != QAbstractSocket::ConnectedState ) m_pTarget->waitForConnected();
 					if( m_proto == http::Proto::HTTPS ){
 						m_tunnel = true;
-						sendResponse( 200, "Connection established" );
+						sendResponse( 200, "<h1>Connection established</h1>" );
 					}
 					if( m_proto == http::Proto::HTTP ){
 						m_pTarget->write( buff );
@@ -184,11 +187,11 @@ void Client::slot_clientReadyRead()
 				}
 			}
 			if( !m_pTarget->isOpen() ){
-				sendResponse( 504, "Gateway Timeout" );
+				sendResponse( 504, "<h1>Gateway Timeout</h1>" );
 				return;
 			}
 		}else{
-			sendResponse( 502, "Bad Gateway" );
+			sendResponse( 502, "<h1>Bad Gateway</h1>" );
 		}
 	}
 }
@@ -239,7 +242,7 @@ void Client::sendResponse(const uint16_t code, const QString &comment)
 	http::pkt pkt;
 	pkt.head.response.code = code;
 	pkt.head.response.comment = comment;
-	pkt.body.rawData.append( app::getHtmlPage("Service page",QString("<h1>" + comment + "</h1>").toLatin1()) );
+	pkt.body.rawData.append( app::getHtmlPage("Service page",comment.toLatin1()) );
 	app::setLog(3,QString("WebProxyClient::sendResponse [%1] %2").arg(code).arg(comment));
 	sendToClient( http::buildPkt(pkt) );
 }
@@ -271,8 +274,24 @@ void Client::sendNoAccess()
 
 void Client::sendToClient(const QByteArray &data)
 {
+	if( m_pClient->state() != QAbstractSocket::ConnectedState ) m_pClient->waitForConnected();
+	if( m_pClient->state() != QAbstractSocket::ConnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
+}
+
+void Client::sendToTarget(const QByteArray &data)
+{
+	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) m_pTarget->waitForConnected();
+	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) return;
+	if( m_proto == http::Proto::HTTPS ){
+		m_pTarget->write( data );
+	}
+	if( m_proto == http::Proto::HTTP ){
+		//TODO: Реализовать подмену заголовка и анонимный режим (пересборка пакета)
+		m_pTarget->write( data );
+	}
+	m_pTarget->waitForBytesWritten(100);
 }
 
 void Client::parsAuth(const QString &string)
@@ -293,6 +312,7 @@ void Client::parsAuth(const QString &string)
 			app::setLog(4,QString("WebProxyClient::parsAuth %1 auth true").arg(login));
 			m_user.login = login;
 			m_auth = true;
+			emit signal_authOK();
 		}
 	}
 }

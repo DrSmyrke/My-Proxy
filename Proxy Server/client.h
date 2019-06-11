@@ -15,8 +15,10 @@ public:
 	qintptr getSocketDescriptor() const { return m_pClient->socketDescriptor(); }
 	void stop();
 	bool isFinished(){ return m_finished; }
+	QString getUserLogin(){ return m_user.login; }
 signals:
 	void signal_finished();
+	void signal_authOK();
 private slots:
 	void slot_clientReadyRead();
 	void slot_targetReadyRead();
@@ -36,6 +38,7 @@ private:
 	void sendNoAuth();
 	void sendNoAccess();
 	void sendToClient(const QByteArray &data);
+	void sendToTarget(const QByteArray &data);
 	void parsAuth(const QString &string);
 };
 

@@ -13,6 +13,7 @@ public:
 	explicit ThreadManager(QObject *parent = nullptr);
 	void incomingConnection(qintptr handle);
 	void stop();
+	void clientsRecount();
 signals:
 	void signal_stopAll();
 private:

@@ -3,7 +3,5 @@
         <file alias="bottom.html">assets/bottom.html</file>
         <file alias="top.html">assets/top.html</file>
         <file alias="menu.html">assets/menu.html</file>
-        <file>assets/index.css</file>
-        <file>assets/index.js</file>
     </qresource>
 </RCC>

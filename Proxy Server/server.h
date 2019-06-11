@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QTcpServer>
 #include <QFile>
+#include <QTimer>
 #include "client.h"
 #include "threadmanager.h"
 #include "global.h"
@@ -19,6 +20,7 @@ protected:
 	void incomingConnection(qintptr handle);
 private:
 	ThreadManager* m_pThreadManager;
+	QTimer* m_pTimer;
 };
 
 #endif // SERVER_H
