@@ -30,10 +30,10 @@ void ClientsManager::slot_start()
 
 }
 
-void ClientsManager::slot_clientFinished(qintptr socketDescriptor)
+void ClientsManager::slot_clientFinished()
 {
 	for( auto client:m_clients ){
-		if( client->getSocketDescriptor() == socketDescriptor ){
+		if( client->isFinished() ){
 			m_clients.removeOne(client);
 			client->deleteLater();
 			break;

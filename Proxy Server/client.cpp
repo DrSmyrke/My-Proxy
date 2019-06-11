@@ -28,7 +28,8 @@ void Client::setSocketDescriptor(qintptr socketDescriptor)
 void Client::stop()
 {
 	m_pClient->close();
-	emit signal_finished( m_pClient->socketDescriptor() );
+	m_finished = true;
+	emit signal_finished();
 }
 
 void Client::slot_clientReadyRead()
@@ -88,6 +89,7 @@ void Client::slot_clientReadyRead()
 	QString path;
 	uint16_t port = 80;
 
+	//2019.06.10 [23:27:55] WebProxyClient::slot_clientReadyRead HTTP Request to [config:73] /
 
 	if( pkt.head.valid && pkt.head.isRequest ){
 		if( pkt.head.request.method == "CONNECT" ){
@@ -104,7 +106,7 @@ void Client::slot_clientReadyRead()
 				return;
 			}else{
 				addr = url.host();
-				port = url.port(port);
+				port = static_cast<uint16_t>( url.port(port) );
 				path = url.path();
 				if( !url.query().isEmpty() ) path += "?" + url.query();
 				path.replace( " ", "%20" );

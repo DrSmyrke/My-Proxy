@@ -14,8 +14,9 @@ public:
 	void setSocketDescriptor(qintptr socketDescriptor);
 	qintptr getSocketDescriptor() const { return m_pClient->socketDescriptor(); }
 	void stop();
+	bool isFinished(){ return m_finished; }
 signals:
-	void signal_finished(qintptr socketDescriptor);
+	void signal_finished();
 private slots:
 	void slot_clientReadyRead();
 	void slot_targetReadyRead();
@@ -29,6 +30,7 @@ private:
 	uint8_t failedAuthorization = 0;
 	User m_user;
 	uint8_t m_proto = http::Proto::UNKNOW;
+	bool m_finished = false;
 
 	void sendResponse(const uint16_t code, const QString &comment);
 	void sendNoAuth();

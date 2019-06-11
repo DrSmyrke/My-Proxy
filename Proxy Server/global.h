@@ -23,6 +23,7 @@ struct User{
 struct HtmlPage{
 	QByteArray top;
 	QByteArray bottom;
+	QByteArray menu;
 };
 
 struct Config{

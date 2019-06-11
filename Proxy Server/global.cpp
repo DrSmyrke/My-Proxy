@@ -24,6 +24,11 @@ namespace app {
 			while (!fbottom.atEnd()) app::conf.page.bottom.append( fbottom.readAll() );
 			fbottom.close();
 		}
+		QFile fmenu(":///pages/menu.html");
+		if(fmenu.open(QIODevice::ReadOnly | QIODevice::Text)){
+			while (!fmenu.atEnd()) app::conf.page.menu.append( fmenu.readAll() );
+			fmenu.close();
+		}
 	}
 
 	void saveSettings()
@@ -83,7 +88,8 @@ namespace app {
 			ba.append( app::conf.page.top );
 			ba.append( "		<title>-= " );
 			ba.append( title );
-			ba.append( " =-</title>\n	</head>\n<body>" );
+			ba.append( " =-</title>\n	</head>\n<body>\n" );
+			ba.append( app::conf.page.menu );
 			ba.append( content );
 			ba.append( app::conf.page.bottom );
 		return ba;

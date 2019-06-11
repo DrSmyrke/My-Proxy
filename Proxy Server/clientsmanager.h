@@ -17,7 +17,7 @@ public slots:
 signals:
 	void signal_finished();
 private slots:
-	void slot_clientFinished(qintptr socketDescriptor);
+	void slot_clientFinished();
 private:
 	QList<Client*> m_clients;
 };
