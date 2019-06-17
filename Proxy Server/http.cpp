@@ -56,6 +56,7 @@ namespace http{
 				}
 				if(param.contains("content-length",Qt::CaseInsensitive)) packet.head.contLen = miniBuff.toUInt();
 				if(param.contains("content-type",Qt::CaseInsensitive)) packet.head.contType = miniBuff;
+				if(param.contains("content-encoding",Qt::CaseInsensitive)) packet.head.contEncoding = miniBuff;
 				if(param.contains("user-agent",Qt::CaseInsensitive)) packet.head.userAgent = miniBuff;
 				if(param.contains("host",Qt::CaseInsensitive)) packet.head.host = miniBuff;
 				if(param.contains("connection",Qt::CaseInsensitive)) packet.head.connection = miniBuff;

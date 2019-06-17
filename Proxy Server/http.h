@@ -35,6 +35,7 @@ namespace http{
 			QString connection = "close";
 			QString host;
 			QString contType;
+			QString contEncoding;
 			int32_t contLen = 0;
 			QString cacheControl;
 			QString cookie;

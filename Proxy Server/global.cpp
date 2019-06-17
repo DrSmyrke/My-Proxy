@@ -23,22 +23,13 @@ namespace app {
 		app::conf.port = settings.value("SERVER/port",app::conf.port).toUInt();
 		app::conf.baseFile = settings.value("SERVER/baseFile",app::conf.baseFile).toString();
 
-		QFile ftop(":///pages/top.html");
-		if(ftop.open(QIODevice::ReadOnly | QIODevice::Text)){
-			while (!ftop.atEnd()) app::conf.page.top.append( ftop.readAll() );
-			ftop.close();
-		}
-		QFile fbottom(":///pages/bottom.html");
-		if(fbottom.open(QIODevice::ReadOnly | QIODevice::Text)){
-			while (!fbottom.atEnd()) app::conf.page.bottom.append( fbottom.readAll() );
-			fbottom.close();
-		}
-		QFile fmenu(":///pages/menu.html");
-		if(fmenu.open(QIODevice::ReadOnly | QIODevice::Text)){
-			while (!fmenu.atEnd()) app::conf.page.menu.append( fmenu.readAll() );
-			fmenu.close();
-		}
-
+		app::loadResource( ":/pages/assets/top.html", app::conf.page.top );
+		app::loadResource( ":/pages/assets/bottom.html", app::conf.page.bottom );
+		app::loadResource( ":/pages/assets/menu.html", app::conf.page.menu );
+		app::loadResource( ":/pages/assets/index.js", app::conf.page.indexJS );
+		app::loadResource( ":/pages/assets/color.css", app::conf.page.colorCSS );
+		app::loadResource( ":/pages/assets/index.css", app::conf.page.indexCSS );
+		app::loadResource( ":/pages/assets/buttons.css", app::conf.page.buttonsCSS );
 
 		if( !app::conf.baseFile.isEmpty() ){
 			if( app::sdb.isOpen() ) app::sdb.close();
@@ -52,8 +43,23 @@ namespace app {
 					if( !res ) app::setLog(1,QString("app::loadSettings cannot create user table"));
 				}
 				if (!a_query.exec("SELECT * FROM blackUrls")){
-					bool res = a_query.exec("CREATE TABLE `blackUrls` ( `blackUrls`	TEXT NOT NULL UNIQUE );");
+					bool res = a_query.exec("CREATE TABLE `blackUrls` ( `url`	TEXT NOT NULL UNIQUE );");
 					if( !res ) app::setLog(1,QString("app::loadSettings cannot create blackUrls table"));
+					if( res ){
+						app::addBlackUrl("*/ad");
+						app::addBlackUrl("ad??.*");
+						app::addBlackUrl("ad?.*");
+						app::addBlackUrl("ad.*");
+						app::addBlackUrl("*adframe*");
+						app::addBlackUrl("*/ad-handler");
+						app::addBlackUrl("*/ads");
+						app::addBlackUrl("ads???.*");
+						app::addBlackUrl("ads.*");
+						app::addBlackUrl("adserv.*");
+						app::addBlackUrl("*/banner");
+						app::addBlackUrl("*/popup");
+						app::addBlackUrl("*/popups");
+					}
 				}
 			}
 		}
@@ -318,6 +324,32 @@ namespace app {
 			}
 		}
 		if( !find ) app::state.addrs.push_back( addr );
+	}
+
+	void loadResource(const QString &fileName, QByteArray &data)
+	{
+		QFile file;
+
+		file.setFileName( fileName );
+		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
+			while (!file.atEnd()) data.append( file.readAll() );
+			file.close();
+		}
+	}
+
+	void addBlackUrl(const QString &str)
+	{
+		if( !app::sdb.isOpen() ) return;
+
+		QSqlQuery a_query;
+		a_query.exec("SELECT `url` FROM blackUrls WHERE `url` = '" + str + "'");
+		uint32_t count = 0;
+		while( a_query.next() ) count++;
+		if( !count ){
+			a_query.prepare("INSERT INTO blackUrls (url) VALUES (:url);");
+			a_query.bindValue(":url", str);
+			if (!a_query.exec()) app::setLog(1,QString("app::addBlackUrl cannot add url"));
+		}
 	}
 
 }

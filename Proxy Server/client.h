@@ -35,6 +35,7 @@ private:
 	bool m_finished = false;
 
 	void sendResponse(const uint16_t code, const QString &comment);
+	void sendRawResponse(const uint16_t code, const QString &comment, const QString &data, const QString &mimeType);
 	void sendNoAuth();
 	void sendNoAccess();
 	void sendToClient(const QByteArray &data);

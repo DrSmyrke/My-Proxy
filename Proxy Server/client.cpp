@@ -120,6 +120,22 @@ void Client::slot_clientReadyRead()
 			m_tunnel = false;
 			bool error = true;
 
+			if( pkt.head.request.target == "/buttons.css" ){
+				sendRawResponse( 200, "OK", app::conf.page.buttonsCSS, "text/css; charset=utf-8" );
+				error = false;
+			}
+			if( pkt.head.request.target == "/color.css" ){
+				sendRawResponse( 200, "OK", app::conf.page.colorCSS, "text/css; charset=utf-8" );
+				error = false;
+			}
+			if( pkt.head.request.target == "/index.js" ){
+				sendRawResponse( 200, "OK", app::conf.page.indexJS, "application/javascript; charset=utf-8" );
+				error = false;
+			}
+			if( pkt.head.request.target == "/index.css" ){
+				sendRawResponse( 200, "OK", app::conf.page.indexCSS, "text/css; charset=utf-8" );
+				error = false;
+			}
 			if( pkt.head.request.target == "/" ){
 				sendResponse( 200, "Test content" );
 				error = false;
@@ -243,7 +259,18 @@ void Client::sendResponse(const uint16_t code, const QString &comment)
 	pkt.head.response.code = code;
 	pkt.head.response.comment = comment;
 	pkt.body.rawData.append( app::getHtmlPage("Service page",comment.toLatin1()) );
-	app::setLog(3,QString("WebProxyClient::sendResponse [%1] %2").arg(code).arg(comment));
+	app::setLog(3,QString("WebProxyClient::sendResponse [%1]").arg(pkt.head.response.code));
+	sendToClient( http::buildPkt(pkt) );
+}
+
+void Client::sendRawResponse(const uint16_t code, const QString &comment, const QString &data, const QString &mimeType)
+{
+	http::pkt pkt;
+	pkt.head.response.code = code;
+	pkt.head.response.comment = comment;
+	if( !mimeType.isEmpty() ) pkt.head.contType = mimeType;
+	pkt.body.rawData.append( data );
+	app::setLog(3,QString("WebProxyClient::sendRawResponse [%1]").arg(pkt.head.response.code));
 	sendToClient( http::buildPkt(pkt) );
 }
 

@@ -1,7 +1,11 @@
 <RCC>
     <qresource prefix="/pages">
-        <file alias="bottom.html">assets/bottom.html</file>
-        <file alias="top.html">assets/top.html</file>
-        <file alias="menu.html">assets/menu.html</file>
+        <file>assets/bottom.html</file>
+        <file>assets/top.html</file>
+        <file>assets/menu.html</file>
+        <file>assets/buttons.css</file>
+        <file>assets/color.css</file>
+        <file>assets/index.js</file>
+        <file>assets/index.css</file>
     </qresource>
 </RCC>

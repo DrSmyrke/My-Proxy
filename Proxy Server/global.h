@@ -27,6 +27,10 @@ struct HtmlPage{
 	QByteArray top;
 	QByteArray bottom;
 	QByteArray menu;
+	QByteArray indexJS;
+	QByteArray colorCSS;
+	QByteArray buttonsCSS;
+	QByteArray indexCSS;
 };
 
 struct Config{
@@ -75,6 +79,8 @@ namespace app {
 	QString getHomePage();
 	void addOpenUrl(const QUrl &url);
 	void addOpenAddr(const QString &addr);
+	void loadResource(const QString &fileName, QByteArray &data);
+	void addBlackUrl(const QString &str);
 }
 
 #endif // GLOBAL_H
