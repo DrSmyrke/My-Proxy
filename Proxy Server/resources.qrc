@@ -7,5 +7,9 @@
         <file>assets/color.css</file>
         <file>assets/index.js</file>
         <file>assets/index.css</file>
+        <file>assets/admin.html</file>
+        <file>assets/config.html</file>
+        <file>assets/index.html</file>
+        <file>assets/state.html</file>
     </qresource>
 </RCC>

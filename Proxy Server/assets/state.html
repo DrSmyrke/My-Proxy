@@ -1,0 +1,54 @@
+<fieldset class="block"><legend>Threads</legend>
+	<div id="threads"></div>
+</fieldset>
+
+<fieldset class="block"><legend>Active users</legend>
+	<div id="activeUsers"></div>
+</fieldset>
+
+<fieldset class="block"><legend>Connections</legend>
+	<div id="connections"></div>
+</fieldset>
+
+<fieldset class="block"><legend>Open URL`s</legend>
+	<div id="opnenUrls"></div>
+</fieldset>
+
+<fieldset class="block"><legend>Open ADDR`s</legend>
+	<div id="opnenAddrs"></div>
+</fieldset>
+
+<script type="text/javascript">
+	var i = 0;
+	var urlArray = new Array(
+		"/get?con=threads",
+		"/get?con=activeUsers",
+		"/get?con=connections",
+		"/get?con=opnenUrls",
+		"/get?con=opnenAddrs",
+	);
+	
+	document.onload = function(){
+		update();
+	};
+	
+	request.onreadystatechange=function(){
+		if (request.readyState==4 && request.status == 200) {
+			var tmp = request.responseText.split(":>:");
+			if( tmp[0] == "content" && document.getElementById( tmp[2] )){
+				document.getElementById( tmp[2] ).innerHTML = tmp[3];
+			}
+		}
+	}
+	
+	function update()
+	{
+		if( urlArray.length == 0 ) return;
+		if( i >= urlArray.length ) i = 0;
+		var url = urlArray[i++];
+		
+		request.open('GET', url,true); request.send(null);
+		
+		setTimeout( "update()", 1000 );
+	}
+</script>
