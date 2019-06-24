@@ -141,11 +141,20 @@ void Client::slot_clientReadyRead()
 				error = false;
 			}
 			if( pkt.head.request.target == "/state" ){
-				sendResponse( 200, app::getStatePage() );
+				sendRawResponse( 200, "OK", app::getHtmlPage( "State", app::conf.page.state ), "text/html; charset=utf-8" );
 				error = false;
 			}
 			if( pkt.head.request.target == "/admin" ){
-				sendResponse( 200, app::getAdminPage() );
+				sendRawResponse( 200, "OK", app::getHtmlPage( "Admin", app::conf.page.admin ), "text/html; charset=utf-8" );
+				error = false;
+			}
+			if( pkt.head.request.target.indexOf("/get?",Qt::CaseInsensitive) == 0 ){
+				auto response = app::parsRequest( pkt.head.request.target );
+				if( response.size() == 0 ){
+					sendRawResponse( 404, "Not found", "", "text/html; charset=utf-8" );
+				}else{
+					sendRawResponse( 200, "OK", response, "text/html; charset=utf-8" );
+				}
 				error = false;
 			}
 
@@ -216,14 +225,15 @@ void Client::slot_targetReadyRead()
 {
 	QByteArray buff;
 	if( m_proto == http::Proto::HTTPS ){
-		while( m_pTarget->bytesAvailable() ) buff.append( m_pTarget->readAll() );
-		app::setLog(5,QString("WebProxyClient::slot_targetReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
+		qint64 len = m_pTarget->bytesAvailable();
+		while( m_pTarget->bytesAvailable() ) sendToClient( m_pTarget->read(1) );//buff.append( m_pTarget->readAll() );
+		app::setLog(5,QString("WebProxyClient::slot_targetReadyRead %1 bytes [%2]").arg(len).arg(QString(buff)));
 
 		//TODO: block list start
 
 		//block list end
 
-		sendToClient( buff );
+
 	}
 	if( m_proto == http::Proto::HTTP ){
 		//TODO: Реализовать фильтрацию трафика

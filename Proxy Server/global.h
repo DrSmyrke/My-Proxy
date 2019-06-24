@@ -31,6 +31,10 @@ struct HtmlPage{
 	QByteArray colorCSS;
 	QByteArray buttonsCSS;
 	QByteArray indexCSS;
+	QByteArray admin;
+	QByteArray state;
+	QByteArray config;
+	QByteArray index;
 };
 
 struct Config{
@@ -73,14 +77,11 @@ namespace app {
 	void usersConnectionsNumAdd(const QString &login, const uint32_t num);
 	void reloadUsers();
 	void saveDataToBase();
-	QString getStatePage();
-	QString getAdminPage();
-	QString getConfigPage();
-	QString getHomePage();
 	void addOpenUrl(const QUrl &url);
 	void addOpenAddr(const QString &addr);
 	void loadResource(const QString &fileName, QByteArray &data);
 	void addBlackUrl(const QString &str);
+	QByteArray parsRequest(const QString &data );
 }
 
 #endif // GLOBAL_H

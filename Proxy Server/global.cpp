@@ -2,6 +2,7 @@
 
 #include <QDateTime>
 #include <QSettings>
+//TODO: remove qdebug
 #include <QDebug>
 #include <QSql>
 #include <QSqlQuery>
@@ -30,6 +31,10 @@ namespace app {
 		app::loadResource( ":/pages/assets/color.css", app::conf.page.colorCSS );
 		app::loadResource( ":/pages/assets/index.css", app::conf.page.indexCSS );
 		app::loadResource( ":/pages/assets/buttons.css", app::conf.page.buttonsCSS );
+		app::loadResource( ":/pages/assets/admin.html", app::conf.page.admin );
+		app::loadResource( ":/pages/assets/state.html", app::conf.page.state );
+		app::loadResource( ":/pages/assets/config.html", app::conf.page.config );
+		app::loadResource( ":/pages/assets/index.html", app::conf.page.index );
 
 		if( !app::conf.baseFile.isEmpty() ){
 			if( app::sdb.isOpen() ) app::sdb.close();
@@ -237,7 +242,7 @@ namespace app {
 
 		app::setLog( 4, QString("saveDataToBase... complete") );
 	}
-
+/*
 	QString getStatePage()
 	{
 		QString str;
@@ -301,7 +306,7 @@ namespace app {
 	{
 
 	}
-
+*/
 	void addOpenUrl(const QUrl &url)
 	{
 		bool find = false;
@@ -350,6 +355,61 @@ namespace app {
 			a_query.bindValue(":url", str);
 			if (!a_query.exec()) app::setLog(1,QString("app::addBlackUrl cannot add url"));
 		}
+	}
+
+	QByteArray parsRequest(const QString &data)
+	{
+		QByteArray ba;
+		QByteArray method;
+		QByteArray tempBuff;
+		QByteArray param;
+		std::map< QByteArray, std::vector<QByteArray> > args;
+
+
+		for( uint16_t i = 0; i < data.length(); i++ ){
+			if( i == 0 && data[i] == '/' ) continue;
+			if( i > 0 ){
+				if( data[i] == '?' || data[i] == '=' || data[i] == '&' ){
+					if( tempBuff.size() == 0 ) break;
+				}
+			}
+			if( i > 0 && data[i] == '?' ){
+				method.append( tempBuff );
+				tempBuff.clear();
+				continue;
+			}
+
+			if( i > 0 && data[i] == '=' ){
+				param.append( tempBuff );
+				tempBuff.clear();
+				continue;
+			}
+
+			if( i > 0 && data[i] == '&' ){
+				if( param.size() == 0 ) break;
+				args[param].push_back( tempBuff );
+				tempBuff.clear();
+				continue;
+			}
+
+			tempBuff.append( data[i] );
+		}
+
+		if( param.size() > 0 && tempBuff.size() > 0 ) args[param].push_back( tempBuff );
+
+		if( method == "get" ){
+			for( auto type:args ){
+				for( auto value:type.second ){
+					//qDebug()<<type.first<<value<<method;
+					//"con" "globalBlockedUrls" "get"
+					if( type.first == "con" && value == "globalBlockedUrls" ){
+
+					}
+				}
+			}
+		}
+
+		return ba;
 	}
 
 }
