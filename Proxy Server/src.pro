@@ -20,6 +20,7 @@ SOURCES += main.cpp \
     http.cpp \
     myfunctions.cpp \
     server.cpp \
+    sql.cpp \
     threadmanager.cpp
 
 HEADERS += \
@@ -29,6 +30,7 @@ HEADERS += \
     http.h \
     myfunctions.h \
     server.h \
+    sql.h \
     threadmanager.h
 
 RESOURCES += \
