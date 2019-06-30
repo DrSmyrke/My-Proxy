@@ -2,19 +2,16 @@
 
 #include <QDateTime>
 #include <QSettings>
+#include <QUrl>
 //TODO: remove qdebug
 #include <QDebug>
-#include <QSql>
-#include <QSqlQuery>
-#include <QSqlResult>
-#include <QSqlError>
-#include <QSqlRecord>
-#include <QUrl>
+
+
 
 namespace app {
 	Config conf;
 	Status state;
-	QSqlDatabase sdb;
+	BlackList blackList;
 
 	void loadSettings()
 	{
@@ -22,7 +19,9 @@ namespace app {
 
 		app::conf.maxThreads = settings.value("SERVER/maxThreads",app::conf.maxThreads).toUInt();
 		app::conf.port = settings.value("SERVER/port",app::conf.port).toUInt();
-		app::conf.baseFile = settings.value("SERVER/baseFile",app::conf.baseFile).toString();
+		app::conf.blackUrlsFile = settings.value("SERVER/blackUrlsFile",app::conf.blackUrlsFile).toString();
+		app::conf.blackAddrsFile = settings.value("SERVER/blackAddrsFile",app::conf.blackAddrsFile).toString();
+
 
 		app::loadResource( ":/pages/assets/top.html", app::conf.page.top );
 		app::loadResource( ":/pages/assets/bottom.html", app::conf.page.bottom );
@@ -36,48 +35,43 @@ namespace app {
 		app::loadResource( ":/pages/assets/config.html", app::conf.page.config );
 		app::loadResource( ":/pages/assets/index.html", app::conf.page.index );
 
-		if( !app::conf.baseFile.isEmpty() ){
-			if( app::sdb.isOpen() ) app::sdb.close();
-			app::sdb = QSqlDatabase::addDatabase("QSQLITE");
-			app::sdb.setDatabaseName( app::conf.baseFile );
-			if( !app::sdb.open() ) app::setLog(1,QString("app::loadSettings cannot open baseFile [%1]").arg(app::conf.baseFile));
-			if( app::sdb.isOpen() ){
-				QSqlQuery a_query;
-				if (!a_query.exec("SELECT * FROM users")){
-					bool res = a_query.exec("CREATE TABLE `users` ( `login`	TEXT NOT NULL UNIQUE, `password`	TEXT NOT NULL, `group`	INTEGER NOT NULL DEFAULT 0, `lastLoginTimestamp`	INTEGER NOT NULL DEFAULT 0, `connections`	INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`login`) );");
-					if( !res ) app::setLog(1,QString("app::loadSettings cannot create user table"));
-				}
-				if (!a_query.exec("SELECT * FROM blackUrls")){
-					bool res = a_query.exec("CREATE TABLE `blackUrls` ( `url`	TEXT NOT NULL UNIQUE );");
-					if( !res ) app::setLog(1,QString("app::loadSettings cannot create blackUrls table"));
-					if( res ){
-						app::addBlackUrl("*/ad");
-						app::addBlackUrl("ad??.*");
-						app::addBlackUrl("ad?.*");
-						app::addBlackUrl("ad.*");
-						app::addBlackUrl("*adframe*");
-						app::addBlackUrl("*/ad-handler");
-						app::addBlackUrl("*/ads");
-						app::addBlackUrl("ads???.*");
-						app::addBlackUrl("ads.*");
-						app::addBlackUrl("adserv.*");
-						app::addBlackUrl("*/banner");
-						app::addBlackUrl("*/popup");
-						app::addBlackUrl("*/popups");
-					}
-				}
-			}
-		}
+		app::loadBlackList( app::conf.blackUrlsFile, app::blackList.urls );
+		app::loadBlackList( app::conf.blackAddrsFile, app::blackList.addrs );
+
+		app::addBlackUrl("*/ad");
+		app::addBlackUrl("ad??.*");
+		app::addBlackUrl("ad?.*");
+		app::addBlackUrl("ad.*");
+		app::addBlackUrl("*adframe*");
+		app::addBlackUrl("*/ad-handler");
+		app::addBlackUrl("*/ads");
+		app::addBlackUrl("ads???.*");
+		app::addBlackUrl("ads.*");
+		app::addBlackUrl("adserv.*");
+		app::addBlackUrl("*/banner");
+		app::addBlackUrl("*/popup");
+		app::addBlackUrl("*/popups");
 	}
 
 	void saveSettings()
 	{
-		QSettings settings("MySoft","WebProxy");
-		settings.clear();
-
-		settings.setValue("SERVER/maxThreads",app::conf.maxThreads);
-		settings.setValue("SERVER/port",app::conf.port);
-		settings.setValue("SERVER/baseFile",app::conf.baseFile);
+		if( app::conf.saveSettings ){
+			QSettings settings("MySoft","WebProxy");
+			settings.clear();
+			settings.setValue("SERVER/maxThreads",app::conf.maxThreads);
+			settings.setValue("SERVER/port",app::conf.port);
+			settings.setValue("SERVER/blackUrlsFile",app::conf.blackUrlsFile);
+			settings.setValue("SERVER/blackAddrsFile",app::conf.blackAddrsFile);
+			app::conf.saveSettings = false;
+		}
+		if( app::blackList.urlsFileSave ){
+			app::saveBlackList( app::conf.blackUrlsFile, app::blackList.urls );
+			app::blackList.urlsFileSave = false;
+		}
+		if( app::blackList.addrsFileSave ){
+			app::saveBlackList( app::conf.blackAddrsFile, app::blackList.addrs );
+			app::blackList.addrsFileSave = false;
+		}
 	}
 
 	bool parsArgs(int argc, char *argv[])
@@ -144,20 +138,6 @@ namespace app {
 		user.login = login;
 		user.pass = mf::md5( hash );
 		app::conf.users.push_back( user );
-
-		if( app::sdb.isOpen() ){
-			QSqlQuery a_query;
-			a_query.exec("SELECT `login` FROM users WHERE `login` = '" + user.login + "'");
-			uint32_t count = 0;
-			while( a_query.next() ) count++;
-			if( !count ){
-				a_query.prepare("INSERT INTO users (login, password) VALUES (:login, :password);");
-				a_query.bindValue(":login", user.login);
-				a_query.bindValue(":password", user.pass);
-				if (!a_query.exec()) app::setLog(1,QString("app::addUser cannot add user"));
-			}
-		}
-
 		return res;
 	}
 
@@ -201,112 +181,6 @@ namespace app {
 		}
 	}
 
-	void reloadUsers()
-	{
-		app::conf.users.clear();
-		QSqlQuery a_query;
-		User user;
-
-		a_query.exec("SELECT * FROM users");
-		QSqlRecord rec = a_query.record();
-
-		while( a_query.next() ){
-			user.login = a_query.value(rec.indexOf("login")).toString();
-			user.pass = a_query.value(rec.indexOf("password")).toString();
-			user.group = a_query.value(rec.indexOf("group")).toInt();
-			user.lastLoginTimestamp = a_query.value(rec.indexOf("lastLoginTimestamp")).toInt();
-			user.connections = a_query.value(rec.indexOf("connections")).toInt();
-			app::conf.users.push_back( user );
-		}
-	}
-
-	void saveDataToBase()
-	{
-		app::setLog( 4, QString("saveDataToBase...") );
-		if( !app::sdb.isOpen() ) return;
-
-
-		QSqlQuery a_query;
-		a_query.prepare("INSERT INTO users (login, password, group, lastLoginTimestamp, connections)"
-									  "VALUES (:login, :password, :group, :lastLoginTimestamp, :connections);");
-		for( auto user:app::conf.users ){
-
-		}
-
-		a_query.bindValue(":login", "14");
-		a_query.bindValue(":password", "hello world str.");
-		a_query.bindValue(":group", "37");
-		a_query.bindValue(":lastLoginTimestamp", "37");
-		a_query.bindValue(":connections", "37");
-
-
-		app::setLog( 4, QString("saveDataToBase... complete") );
-	}
-/*
-	QString getStatePage()
-	{
-		QString str;
-		QDateTime dt = QDateTime::currentDateTime();
-
-		str += "<fieldset class=\"block\"><legend>Threads</legend><table>";
-		for( uint8_t i = 0; i < app::state.threads.size(); i++ ){
-			str += "<tr><td>Thread #" + QString::number( i ) + ":</td><td>" + QString::number( app::state.threads.at( i ) ) + "</td></tr>";
-		}
-		str += "</table></fieldset>";
-
-
-		str += "<fieldset class=\"block\"><legend>Active users</legend><table>";
-		for( auto user:app::conf.users ){
-			uint32_t lastLoginSec = dt.toTime_t() - user.lastLoginTimestamp;
-			str += "<tr><td>" + user.login + "</td><td> " + QString::number( lastLoginSec ) + " sec. ago</td></tr>";
-		}
-		str += "</table></fieldset>";
-
-
-		str += "<fieldset class=\"block\"><legend>Connections</legend><table>";
-		for( auto user:app::conf.users ){
-			str += "<tr><td>" + user.login + "</td><td> " + QString::number( user.connections ) + "</td></tr>";
-		}
-		str += "</table></fieldset>";
-
-		str += "<fieldset class=\"block\"><legend>Open URL`s</legend><table>";
-		for( auto url:app::state.urls ){
-			str += "<tr><td>" + url + "</td><td></td></tr>";
-		}
-		str += "</table></fieldset>";
-
-		str += "<fieldset class=\"block\"><legend>Open ADDR`s</legend><table>";
-		for( auto addr:app::state.addrs ){
-			str += "<tr><td>" + addr + "</td><td></td></tr>";
-		}
-		str += "</table></fieldset>";
-
-		return str;
-	}
-
-	QString getAdminPage()
-	{
-		QString str;
-
-		str += "<fieldset class=\"block\"><legend>Global blocked url`s</legend><table>";
-		//for( auto user:app::conf.users ){
-		//	str += "<tr><td>" + user.login + "</td><td> " + QString::number( user.connections ) + "</td></tr>";
-		//}
-		str += "</table></fieldset>";
-
-		return str;
-	}
-
-	QString getConfigPage()
-	{
-
-	}
-
-	QString getHomePage()
-	{
-
-	}
-*/
 	void addOpenUrl(const QUrl &url)
 	{
 		bool find = false;
@@ -342,18 +216,50 @@ namespace app {
 		}
 	}
 
+	void loadBlackList(const QString &fileName, std::vector<QString> &data)
+	{
+		QFile file;
+		QByteArray buff;
+		file.setFileName( fileName );
+		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
+			QByteArray str;
+			char sym;
+			while(!file.atEnd()){
+				file.read( &sym, 1 );
+				if( sym == '\n' ){
+					data.push_back( str );
+					str.clear();
+				}
+				str.append( sym );
+			}
+			file.close();
+		}
+	}
+
+	void saveBlackList(const QString &fileName, const std::vector<QString> &data)
+	{
+		QFile file;
+		file.setFileName( fileName );
+		if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
+			for( auto elem:data ) file.write( elem.toLatin1() );
+			file.close();
+		}
+	}
+
 	void addBlackUrl(const QString &str)
 	{
-		if( !app::sdb.isOpen() ) return;
+		bool find = false;
 
-		QSqlQuery a_query;
-		a_query.exec("SELECT `url` FROM blackUrls WHERE `url` = '" + str + "'");
-		uint32_t count = 0;
-		while( a_query.next() ) count++;
-		if( !count ){
-			a_query.prepare("INSERT INTO blackUrls (url) VALUES (:url);");
-			a_query.bindValue(":url", str);
-			if (!a_query.exec()) app::setLog(1,QString("app::addBlackUrl cannot add url"));
+		for( auto elem:app::blackList.urls ){
+			if( elem == str ){
+				find = true;
+				break;
+			}
+		}
+
+		if( !find ){
+			app::blackList.urls.push_back( str );
+			app::blackList.urlsFileSave = true;
 		}
 	}
 
@@ -398,18 +304,88 @@ namespace app {
 		if( param.size() > 0 && tempBuff.size() > 0 ) args[param].push_back( tempBuff );
 
 		if( method == "get" ){
+			ba.append("content:>:");
 			for( auto type:args ){
 				for( auto value:type.second ){
 					//qDebug()<<type.first<<value<<method;
 					//"con" "globalBlockedUrls" "get"
 					if( type.first == "con" && value == "globalBlockedUrls" ){
-
+						ba.append("globalBlockedUrls:>:");
+						ba.append("<table>");
+						for( auto elem:app::blackList.urls ){
+							ba.append("<tr>");
+							ba.append( QString("<td>" + elem + "</td>") );
+							ba.append("</tr>");
+						}
+						ba.append("</table>");
+					}
+					if( type.first == "con" && value == "threads" ){
+						ba.append("threads:>:");
+						ba.append("<table>");
+						for( uint8_t i = 0; i < app::state.threads.size(); i++ ){
+							ba.append("<tr>");
+							ba.append( QString("<td>Thread #" + QString::number( i ) + ":</td><td>" + QString::number( app::state.threads.at( i ) ) + "</td>") );
+							ba.append("</tr>");
+						}
+						ba.append("</table>");
+					}
+					if( type.first == "con" && value == "openUrls" ){
+						ba.append("openUrls:>:");
+						ba.append("<table>");
+						for( auto url:app::state.urls ){
+							ba.append("<tr>");
+							ba.append( QString("<td>" + url + "</td><td></td>") );
+							ba.append("</tr>");
+						}
+						ba.append("</table>");
+					}
+					if( type.first == "con" && value == "openAddrs" ){
+						ba.append("openAddrs:>:");
+						ba.append("<table>");
+						for( auto addr:app::state.addrs ){
+							ba.append("<tr>");
+							ba.append( QString("<td>" + addr + "</td><td></td>") );
+							ba.append("</tr>");
+						}
+						ba.append("</table>");
+					}
+					if( type.first == "con" && value == "connections" ){
+						ba.append("connections:>:");
+						ba.append("<table>");
+						for( auto user:app::conf.users ){
+							ba.append("<tr>");
+							ba.append( QString("<td>" + user.login + "</td><td> " + QString::number( user.connections ) + "</td>") );
+							ba.append("</tr>");
+						}
+						ba.append("</table>");
+					}
+					if( type.first == "con" && value == "activeUsers" ){
+						ba.append("activeUsers:>:");
+						QDateTime dt = QDateTime::currentDateTime();
+						ba.append("<table>");
+						for( auto user:app::conf.users ){
+							uint32_t lastLoginSec = dt.toTime_t() - user.lastLoginTimestamp;
+							ba.append("<tr>");
+							ba.append( QString("<td>" + user.login + "</td><td> " + QString::number( lastLoginSec ) + " sec. ago</td>") );
+							ba.append("</tr>");
+						}
+						ba.append("</table>");
 					}
 				}
 			}
 		}
 
 		return ba;
+	}
+
+	void getUserData(User &userData, const QString &login)
+	{
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				userData = user;
+				break;
+			}
+		}
 	}
 
 }

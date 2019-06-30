@@ -3,7 +3,6 @@
 
 #include <QString>
 #include <vector>
-#include <QSqlDatabase>
 
 #include "http.h"
 #include "myfunctions.h"
@@ -41,7 +40,8 @@ struct Config{
 	bool verbose						= false;
 	uint8_t logLevel					= 3;
 	QString logFile						= "webProxy.log";
-	QString baseFile					= "webProxy.sqlite";
+	QString blackUrlsFile				= "blackUrls.list";
+	QString blackAddrsFile				= "blackAddrs.list";
 	uint8_t maxThreads					= 3;
 	uint8_t maxClients					= 37;
 	uint16_t port						= 7300;
@@ -52,6 +52,14 @@ struct Config{
 	HtmlPage page;
 	uint8_t maxFailedAuthorization		= 5;
 	uint16_t maxStatusListSize			= 65000;
+	bool saveSettings					= false;
+};
+
+struct BlackList{
+	std::vector<QString> urls;
+	std::vector<QString> addrs;
+	bool urlsFileSave = false;
+	bool addrsFileSave = false;
 };
 
 struct Status{
@@ -63,7 +71,8 @@ struct Status{
 namespace app {
 	extern Config conf;
 	extern Status state;
-	extern QSqlDatabase sdb;
+	extern BlackList blackList;
+
 
 	void loadSettings();
 	void saveSettings();
@@ -75,11 +84,11 @@ namespace app {
 	bool chkAuth(const QString &login, const QString &pass);
 	void usersConnectionsClear();
 	void usersConnectionsNumAdd(const QString &login, const uint32_t num);
-	void reloadUsers();
-	void saveDataToBase();
 	void addOpenUrl(const QUrl &url);
 	void addOpenAddr(const QString &addr);
 	void loadResource(const QString &fileName, QByteArray &data);
+	void loadBlackList(const QString &fileName, std::vector<QString> &data);
+	void saveBlackList(const QString &fileName, const std::vector<QString> &data);
 	void addBlackUrl(const QString &str);
 	QByteArray parsRequest(const QString &data );
 }

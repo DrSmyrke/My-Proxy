@@ -21,6 +21,9 @@ protected:
 private:
 	ThreadManager* m_pThreadManager;
 	QTimer* m_pTimer;
+	uint8_t m_timerCounter = 0;
+	uint8_t m_secSaveSettingsCounter = 1;
+	uint8_t m_secUpdateDataCounter = 1;
 };
 
 #endif // SERVER_H

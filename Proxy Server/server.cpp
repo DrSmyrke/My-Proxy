@@ -6,16 +6,28 @@ Server::Server(QObject *parent)	: QTcpServer(parent)
 
 	m_pThreadManager = new ThreadManager(this);
 	m_pTimer = new QTimer(this);
-		m_pTimer->setInterval(60000);
+		m_pTimer->setInterval(100);
 
 	connect( m_pTimer, &QTimer::timeout, this, [this](){
-		m_pThreadManager->clientsRecount();
-		app::saveDataToBase();
-		if( app::state.urls.size() > 0 ){
-			while( app::state.urls.size() > app::conf.maxStatusListSize ) app::state.urls.erase( app::state.urls.begin() );
-		}
-		if( app::state.addrs.size() > 0 ){
-			while( app::state.addrs.size() > app::conf.maxStatusListSize ) app::state.addrs.erase( app::state.addrs.begin() );
+		uint8_t tickPerSecond = 1000 / m_pTimer->interval();
+		if( m_timerCounter++ % tickPerSecond ){
+			if( m_secSaveSettingsCounter == 3 ){
+				app::saveSettings();
+				m_secSaveSettingsCounter = 1;
+			}
+			if( m_secUpdateDataCounter == 60 ){
+				m_pThreadManager->clientsRecount();
+				if( app::state.urls.size() > 0 ){
+					while( app::state.urls.size() > app::conf.maxStatusListSize ) app::state.urls.erase( app::state.urls.begin() );
+				}
+				if( app::state.addrs.size() > 0 ){
+					while( app::state.addrs.size() > app::conf.maxStatusListSize ) app::state.addrs.erase( app::state.addrs.begin() );
+				}
+				m_secUpdateDataCounter = 1;
+			}
+
+			m_secSaveSettingsCounter++;
+			m_secUpdateDataCounter++;
 		}
 	} );
 }
@@ -33,7 +45,6 @@ void Server::stop()
 {
 	app::setLog( 0, "SERVER STOPPING..." );
 	m_pThreadManager->stop();
-	if( app::sdb.isOpen() ) app::sdb.close();
 	app::saveSettings();
 	this->close();
 }
