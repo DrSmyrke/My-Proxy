@@ -7,7 +7,7 @@
 #include "http.h"
 #include "myfunctions.h"
 
-struct UserGrpups{
+struct UserGrpup{
 	enum{
 		users,
 		admins,
@@ -17,7 +17,7 @@ struct UserGrpups{
 struct User{
 	QString login;
 	QString pass;
-	uint8_t group = UserGrpups::users;
+	uint8_t group = UserGrpup::users;
 	uint32_t lastLoginTimestamp = 0;
 	uint32_t connections = 0;
 };
@@ -79,7 +79,7 @@ namespace app {
 	bool parsArgs(int argc, char *argv[]);
 	void setLog(const uint8_t logLevel, const QString &mess);
 	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content);
-	bool addUser(const QString &login, const QString &pass);
+	bool addUser(const QString &login, const QString &pass, const uint8_t group = UserGrpup::users);
 	bool passIsValid(const QString &pass, const QString &hash);
 	bool chkAuth(const QString &login, const QString &pass);
 	void usersConnectionsClear();
@@ -90,7 +90,8 @@ namespace app {
 	void loadBlackList(const QString &fileName, std::vector<QString> &data);
 	void saveBlackList(const QString &fileName, const std::vector<QString> &data);
 	void addBlackUrl(const QString &str);
-	QByteArray parsRequest(const QString &data );
+	QByteArray parsRequest(const QString &data , const User &userData);
+	void getUserData(User &userData, const QString &login);
 }
 
 #endif // GLOBAL_H

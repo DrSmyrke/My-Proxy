@@ -149,7 +149,7 @@ void Client::slot_clientReadyRead()
 				error = false;
 			}
 			if( pkt.head.request.target.indexOf("/get?",Qt::CaseInsensitive) == 0 ){
-				auto response = app::parsRequest( pkt.head.request.target );
+				auto response = app::parsRequest( pkt.head.request.target, m_user );
 				if( response.size() == 0 ){
 					sendRawResponse( 404, "Not found", "", "text/html; charset=utf-8" );
 				}else{
@@ -347,7 +347,7 @@ void Client::parsAuth(const QString &string)
 		QString pass = tmp[1];
 		if( app::chkAuth( login, pass ) ){
 			app::setLog(4,QString("WebProxyClient::parsAuth %1 auth true").arg(login));
-			m_user.login = login;
+			app::getUserData( m_user, login );
 			m_auth = true;
 			emit signal_authOK();
 		}

@@ -129,7 +129,7 @@ namespace app {
 		return ba;
 	}
 
-	bool addUser(const QString &login, const QString &pass)
+	bool addUser(const QString &login, const QString &pass, const uint8_t group)
 	{
 		bool res = true;
 		auto hash = mf::md5(pass.toLatin1());
@@ -137,6 +137,7 @@ namespace app {
 		User user;
 		user.login = login;
 		user.pass = mf::md5( hash );
+		user.group = group;
 		app::conf.users.push_back( user );
 		return res;
 	}
@@ -263,7 +264,7 @@ namespace app {
 		}
 	}
 
-	QByteArray parsRequest(const QString &data)
+	QByteArray parsRequest(const QString &data, const User &userData)
 	{
 		QByteArray ba;
 		QByteArray method;
@@ -334,7 +335,8 @@ namespace app {
 						ba.append("<table>");
 						for( auto url:app::state.urls ){
 							ba.append("<tr>");
-							ba.append( QString("<td>" + url + "</td><td></td>") );
+							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"action('addToGlobalBlock','" + url + "');\">" : "";
+							ba.append( QString("<td>" + url + "</td><td>" + adminB + "</td></td>") );
 							ba.append("</tr>");
 						}
 						ba.append("</table>");
@@ -344,7 +346,7 @@ namespace app {
 						ba.append("<table>");
 						for( auto addr:app::state.addrs ){
 							ba.append("<tr>");
-							ba.append( QString("<td>" + addr + "</td><td></td>") );
+							ba.append( QString("<td>" + addr + "</td><td></td></td>") );
 							ba.append("</tr>");
 						}
 						ba.append("</table>");
