@@ -49,4 +49,9 @@
 		
 		setTimeout( "update()", 1000 );
 	}
+	
+	function action(type, value)
+	{
+		request.open('GET', "/set?param=" + type + "&value=\"" + value + "\"",true); request.send(null);
+	}
 </script>

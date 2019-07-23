@@ -2,10 +2,15 @@
 	<div id="globalBlockedUrls"></div>
 </fieldset>
 
+<fieldset class="block"><legend>Global blocked addr`s</legend>
+	<div id="globalBlockedAddrs"></div>
+</fieldset>
+
 <script type="text/javascript">
 	var i = 0;
 	var urlArray = new Array(
 		"/get?con=globalBlockedUrls",
+		"/get?con=globalBlockedAddrs",
 	);
 	
 	update();

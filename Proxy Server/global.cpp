@@ -38,19 +38,19 @@ namespace app {
 		app::loadBlackList( app::conf.blackUrlsFile, app::blackList.urls );
 		app::loadBlackList( app::conf.blackAddrsFile, app::blackList.addrs );
 
-		app::addBlackUrl("*/ad");
-		app::addBlackUrl("ad??.*");
-		app::addBlackUrl("ad?.*");
-		app::addBlackUrl("ad.*");
-		app::addBlackUrl("*adframe*");
-		app::addBlackUrl("*/ad-handler");
-		app::addBlackUrl("*/ads");
-		app::addBlackUrl("ads???.*");
-		app::addBlackUrl("ads.*");
-		app::addBlackUrl("adserv.*");
-		app::addBlackUrl("*/banner");
-		app::addBlackUrl("*/popup");
-		app::addBlackUrl("*/popups");
+		app::addGlobalBlackUrl("*/ad");
+		app::addGlobalBlackUrl("ad??.*");
+		app::addGlobalBlackUrl("ad?.*");
+		app::addGlobalBlackUrl("ad.*");
+		app::addGlobalBlackUrl("*adframe*");
+		app::addGlobalBlackUrl("*/ad-handler");
+		app::addGlobalBlackUrl("*/ads");
+		app::addGlobalBlackUrl("ads???.*");
+		app::addGlobalBlackUrl("ads.*");
+		app::addGlobalBlackUrl("adserv.*");
+		app::addGlobalBlackUrl("*/banner");
+		app::addGlobalBlackUrl("*/popup");
+		app::addGlobalBlackUrl("*/popups");
 	}
 
 	void saveSettings()
@@ -230,6 +230,7 @@ namespace app {
 				if( sym == '\n' ){
 					data.push_back( str );
 					str.clear();
+					continue;
 				}
 				str.append( sym );
 			}
@@ -242,12 +243,15 @@ namespace app {
 		QFile file;
 		file.setFileName( fileName );
 		if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
-			for( auto elem:data ) file.write( elem.toLatin1() );
+			for( auto elem:data ){
+				file.write( elem.toLatin1() );
+				file.write( "\n" );
+			}
 			file.close();
 		}
 	}
 
-	void addBlackUrl(const QString &str)
+	void addGlobalBlackUrl(const QString &str)
 	{
 		bool find = false;
 
@@ -264,12 +268,30 @@ namespace app {
 		}
 	}
 
+	void addGlobalBlackAddr(const QString &str)
+	{
+		bool find = false;
+
+		for( auto elem:app::blackList.addrs ){
+			if( elem == str ){
+				find = true;
+				break;
+			}
+		}
+
+		if( !find ){
+			app::blackList.addrs.push_back( str );
+			app::blackList.addrsFileSave = true;
+		}
+	}
+
 	QByteArray parsRequest(const QString &data, const User &userData)
 	{
 		QByteArray ba;
 		QByteArray method;
 		QByteArray tempBuff;
 		QByteArray param;
+		bool value = false;
 		std::map< QByteArray, std::vector<QByteArray> > args;
 
 
@@ -280,22 +302,28 @@ namespace app {
 					if( tempBuff.size() == 0 ) break;
 				}
 			}
-			if( i > 0 && data[i] == '?' ){
+			if( i > 0 && data[i] == '?' && method.size() == 0 && !value ){
 				method.append( tempBuff );
 				tempBuff.clear();
 				continue;
 			}
 
-			if( i > 0 && data[i] == '=' ){
+			if( i > 0 && data[i] == '=' && !value ){
 				param.append( tempBuff );
 				tempBuff.clear();
 				continue;
 			}
 
-			if( i > 0 && data[i] == '&' ){
+			if( i > 0 && data[i] == '"' && param.size() > 0 ){
+				value = !value;
+				continue;
+			}
+
+			if( i > 0 && data[i] == '&' && !value ){
 				if( param.size() == 0 ) break;
 				args[param].push_back( tempBuff );
 				tempBuff.clear();
+				param.clear();
 				continue;
 			}
 
@@ -303,6 +331,25 @@ namespace app {
 		}
 
 		if( param.size() > 0 && tempBuff.size() > 0 ) args[param].push_back( tempBuff );
+
+		ba.append( processingRequest( method, args, userData ) );
+
+		return ba;
+	}
+
+	void getUserData(User &userData, const QString &login)
+	{
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				userData = user;
+				break;
+			}
+		}
+	}
+
+	QByteArray processingRequest(const QString &method, const std::map< QByteArray, std::vector<QByteArray> > &args, const User &userData)
+	{
+		QByteArray ba;
 
 		if( method == "get" ){
 			ba.append("content:>:");
@@ -314,6 +361,16 @@ namespace app {
 						ba.append("globalBlockedUrls:>:");
 						ba.append("<table>");
 						for( auto elem:app::blackList.urls ){
+							ba.append("<tr>");
+							ba.append( QString("<td>" + elem + "</td>") );
+							ba.append("</tr>");
+						}
+						ba.append("</table>");
+					}
+					if( type.first == "con" && value == "globalBlockedAddrs" ){
+						ba.append("globalBlockedAddrs:>:");
+						ba.append("<table>");
+						for( auto elem:app::blackList.addrs ){
 							ba.append("<tr>");
 							ba.append( QString("<td>" + elem + "</td>") );
 							ba.append("</tr>");
@@ -335,7 +392,7 @@ namespace app {
 						ba.append("<table>");
 						for( auto url:app::state.urls ){
 							ba.append("<tr>");
-							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"action('addToGlobalBlock','" + url + "');\">" : "";
+							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"addToGlobalBlockUrl\" onClick=\"action('addToGlobalBlockUrl','" + url + "');\">" : "";
 							ba.append( QString("<td>" + url + "</td><td>" + adminB + "</td></td>") );
 							ba.append("</tr>");
 						}
@@ -346,7 +403,8 @@ namespace app {
 						ba.append("<table>");
 						for( auto addr:app::state.addrs ){
 							ba.append("<tr>");
-							ba.append( QString("<td>" + addr + "</td><td></td></td>") );
+							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"addToGlobalBlockAddr\" onClick=\"action('addToGlobalBlockAddr','" + addr + "');\">" : "";
+							ba.append( QString("<td>" + addr + "</td><td>" + adminB + "</td></td>") );
 							ba.append("</tr>");
 						}
 						ba.append("</table>");
@@ -377,17 +435,61 @@ namespace app {
 			}
 		}
 
+		if( method == "set" ){
+			ba.append("OK");
+			if( args.count("param") > 0 && args.count("value") ){
+				auto param = args.at("param")[0];
+				auto value = args.at("value");
+				if( param == "addToGlobalBlockUrl" && userData.group == UserGrpup::admins ){
+					for( auto elem:value ) app::addGlobalBlackUrl( elem );
+				}
+				if( param == "addToGlobalBlockAddr" && userData.group == UserGrpup::admins ){
+					for( auto elem:value ) app::addGlobalBlackAddr( elem );
+				}
+			}
+		}
+
 		return ba;
 	}
 
-	void getUserData(User &userData, const QString &login)
+	bool strFind(const QString &inStr, const QString &dataStr)
 	{
-		for( auto user:app::conf.users ){
-			if( login == user.login ){
-				userData = user;
+		bool ret = false;
+
+		if( dataStr.isEmpty() || inStr.isEmpty() ) return ret;
+		if( inStr.left(1) == "*" && inStr.right(1) == "*" ){
+			QString findStr = inStr;
+			findStr.remove( 0, 1 );
+			findStr.remove( findStr.length() - 1, 1 );
+			if( dataStr.contains( findStr, Qt::CaseInsensitive ) ) ret = true;
+		}
+		if( inStr.left(1) == "*" && inStr.right(1) != "*" ){
+			QString findStr = inStr;
+			findStr.remove( 0, 1 );
+			if( dataStr.right( findStr.length() ) == findStr ) ret = true;
+		}
+		if( inStr.left(1) != "*" && inStr.right(1) == "*" ){
+			QString findStr = inStr;
+			findStr.remove( findStr.length() - 1, 1 );
+			if( dataStr.indexOf( findStr, Qt::CaseInsensitive ) == 0 ) ret = true;
+		}
+		if( inStr.left(1) != "*" && inStr.right(1) != "*" ){ if( dataStr == inStr ) ret = true; }
+
+		return ret;
+	}
+
+	bool findInBlackList(const QString &url, const std::vector<QString> &data)
+	{
+		bool res = false;
+
+		for( auto elem:data ){
+			if( app::strFind( elem, url ) ){
+				res = true;
 				break;
 			}
 		}
+
+		return res;
 	}
 
 }

@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
 	app::conf.socksClients.push_back( "192.168.1.250" );
 	app::conf.socksClients.push_back( "127.0.0.1" );
 	app::addUser( "admin", "admin", UserGrpup::admins );
+	app::addUser( "test", "test" );
 
 	Server* server=new Server();
 	server->run();

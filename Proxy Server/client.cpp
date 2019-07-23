@@ -35,7 +35,14 @@ void Client::stop()
 void Client::slot_clientReadyRead()
 {
 	QByteArray buff;
-	while( m_pClient->bytesAvailable() ) buff.append( m_pClient->readAll() );
+	while( m_pClient->bytesAvailable() ){
+		QByteArray tmp = m_pClient->read(1);
+		buff.append( tmp );
+		if( m_pTarget->isOpen() ){
+			sendToTarget( buff );
+			buff.clear();
+		}
+	}
 	app::setLog(5,QString("Client::slot_clientReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
 
 	//qDebug()<<buff;
@@ -80,6 +87,11 @@ void Client::slot_clientReadyRead()
 			if( tmp.size() == 2 ) port = tmp[1].toUInt();
 			app::setLog(3,QString("WebProxyClient::slot_clientReadyRead HTTPS Request to [%1]").arg(pkt.head.request.target));
 			m_proto = http::Proto::HTTPS;
+			//Black list addrs
+			if( app::findInBlackList( addr, app::blackList.addrs ) ){
+				m_proto = http::Proto::UNKNOW;
+				buff.clear();
+			}
 		}
 		if( pkt.head.request.method == "GET" || pkt.head.request.method == "POST" ){
 			QUrl url(pkt.head.request.target);
@@ -100,12 +112,19 @@ void Client::slot_clientReadyRead()
 			buff.clear();
 			buff.append( http::buildPkt( pkt ) );
 			m_proto = http::Proto::HTTP;
-			app::addOpenUrl(url);
+			//dont statistic settings url
+			if( pkt.head.host != app::conf.adminkaHostAddr ) app::addOpenUrl(url);
+			//Black list urls
+			if( app::findInBlackList( url.toString(), app::blackList.urls ) ){
+				m_proto = http::Proto::UNKNOW;
+				buff.clear();
+			}
 		}
 	}
 
 	if( pkt.head.isRequest && m_proto != http::Proto::UNKNOW ){
-		app::addOpenAddr( addr );
+		//dont statistic settings url
+		if( pkt.head.host != app::conf.adminkaHostAddr ) app::addOpenAddr( addr );
 	}
 
 
@@ -115,7 +134,7 @@ void Client::slot_clientReadyRead()
 
 
 	if( pkt.head.isRequest && m_proto == http::Proto::HTTP ){
-		if( pkt.head.host == "config:73" ){
+		if( pkt.head.host == app::conf.adminkaHostAddr ){
 			if( m_pTarget->isOpen() ) m_pTarget->close();
 			m_tunnel = false;
 			bool error = true;
@@ -148,7 +167,7 @@ void Client::slot_clientReadyRead()
 				sendRawResponse( 200, "OK", app::getHtmlPage( "Admin", app::conf.page.admin ), "text/html; charset=utf-8" );
 				error = false;
 			}
-			if( pkt.head.request.target.indexOf("/get?",Qt::CaseInsensitive) == 0 ){
+			if( pkt.head.request.target.indexOf("/get?",Qt::CaseInsensitive) == 0 or pkt.head.request.target.indexOf("/set?",Qt::CaseInsensitive) == 0 ){
 				auto response = app::parsRequest( pkt.head.request.target, m_user );
 				if( response.size() == 0 ){
 					sendRawResponse( 404, "Not found", "", "text/html; charset=utf-8" );
@@ -319,6 +338,7 @@ void Client::sendToClient(const QByteArray &data)
 
 void Client::sendToTarget(const QByteArray &data)
 {
+	if( data.size() == 0 ) return;
 	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) m_pTarget->waitForConnected();
 	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) return;
 	if( m_proto == http::Proto::HTTPS ){

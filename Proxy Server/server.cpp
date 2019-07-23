@@ -37,6 +37,7 @@ void Server::run()
 	if(!this->listen(QHostAddress::AnyIPv4,app::conf.port)){
 		qWarning("ERROR\n");
 	}else{
+		m_pTimer->start();
 		app::setLog( 0, QString("SERVER [ ACTIVATED ] PORT: [%1]").arg(app::conf.port) );
 	}
 }
@@ -45,6 +46,7 @@ void Server::stop()
 {
 	app::setLog( 0, "SERVER STOPPING..." );
 	m_pThreadManager->stop();
+	if( m_pTimer->isActive() ) m_pTimer->stop();
 	app::saveSettings();
 	this->close();
 }

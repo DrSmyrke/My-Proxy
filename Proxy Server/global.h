@@ -53,6 +53,7 @@ struct Config{
 	uint8_t maxFailedAuthorization		= 5;
 	uint16_t maxStatusListSize			= 65000;
 	bool saveSettings					= false;
+	QString adminkaHostAddr				= "config:73";
 };
 
 struct BlackList{
@@ -89,9 +90,13 @@ namespace app {
 	void loadResource(const QString &fileName, QByteArray &data);
 	void loadBlackList(const QString &fileName, std::vector<QString> &data);
 	void saveBlackList(const QString &fileName, const std::vector<QString> &data);
-	void addBlackUrl(const QString &str);
+	void addGlobalBlackUrl(const QString &str);
+	void addGlobalBlackAddr(const QString &str);
 	QByteArray parsRequest(const QString &data , const User &userData);
 	void getUserData(User &userData, const QString &login);
+	QByteArray processingRequest(const QString &method, const std::map<QByteArray, std::vector<QByteArray> > &args, const User &userData);
+	bool strFind(const QString &inStr, const QString &dataStr);
+	bool findInBlackList(const QString &url, const std::vector<QString> &data);
 }
 
 #endif // GLOBAL_H
