@@ -16,6 +16,7 @@ public:
 	void clientsRecount();
 signals:
 	void signal_stopAll();
+	void signal_recount();
 private:
 	QList<ClientsManager*> m_clientsManager;
 

@@ -13,17 +13,13 @@ Server::Server(QObject *parent)	: QTcpServer(parent)
 		if( m_timerCounter++ % tickPerSecond ){
 			if( m_secSaveSettingsCounter == 3 ){
 				app::saveSettings();
-				m_secSaveSettingsCounter = 1;
+				m_secSaveSettingsCounter = 0;
 			}
 			if( m_secUpdateDataCounter == 60 ){
 				m_pThreadManager->clientsRecount();
-				if( app::state.urls.size() > 0 ){
-					while( app::state.urls.size() > app::conf.maxStatusListSize ) app::state.urls.erase( app::state.urls.begin() );
-				}
-				if( app::state.addrs.size() > 0 ){
-					while( app::state.addrs.size() > app::conf.maxStatusListSize ) app::state.addrs.erase( app::state.addrs.begin() );
-				}
-				m_secUpdateDataCounter = 1;
+				while( app::state.urls.size() > app::conf.maxStatusListSize ) app::state.urls.erase( app::state.urls.begin() );
+				while( app::state.addrs.size() > app::conf.maxStatusListSize ) app::state.addrs.erase( app::state.addrs.begin() );
+				m_secUpdateDataCounter = 0;
 			}
 
 			m_secSaveSettingsCounter++;
@@ -32,14 +28,18 @@ Server::Server(QObject *parent)	: QTcpServer(parent)
 	} );
 }
 
-void Server::run()
+bool Server::run()
 {
 	if(!this->listen(QHostAddress::AnyIPv4,app::conf.port)){
 		qWarning("ERROR\n");
-	}else{
-		m_pTimer->start();
-		app::setLog( 0, QString("SERVER [ ACTIVATED ] PORT: [%1]").arg(app::conf.port) );
+		app::setLog( 0, QString("SERVER [ NOT ACTIVATED ] PORT: [%1] %2").arg(app::conf.port).arg(this->errorString()) );
+		return false;
 	}
+
+	m_pTimer->start();
+	app::setLog( 0, QString("SERVER [ ACTIVATED ] PORT: [%1]").arg(app::conf.port) );
+
+	return true;
 }
 
 void Server::stop()

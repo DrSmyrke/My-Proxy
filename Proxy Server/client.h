@@ -18,7 +18,6 @@ public:
 	QString getUserLogin(){ return m_user.login; }
 signals:
 	void signal_finished();
-	void signal_authOK();
 private slots:
 	void slot_clientReadyRead();
 	void slot_targetReadyRead();
@@ -29,9 +28,9 @@ private:
 	QTcpSocket* m_pTarget;
 	bool m_tunnel = false;
 	bool m_auth = false;
-	uint8_t failedAuthorization = 0;
+	uint8_t m_failedAuthorization = 0;
 	User m_user;
-	uint8_t m_proto = http::Proto::UNKNOW;
+	uint8_t m_proto = http::Proto::UNKNOWN;
 	bool m_finished = false;
 
 	void sendResponse(const uint16_t code, const QString &comment);
@@ -40,7 +39,8 @@ private:
 	void sendNoAccess();
 	void sendToClient(const QByteArray &data);
 	void sendToTarget(const QByteArray &data);
-	void parsAuth(const QString &string);
+	void parsAuth(const QString &string, const QString &method);
+	void moveToLockedPage();
 };
 
 #endif // CLIENT_H

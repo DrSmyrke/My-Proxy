@@ -1,5 +1,5 @@
 QT += core
-QT += network sql
+QT += network
 QT -= gui
 
 TARGET = webProxy

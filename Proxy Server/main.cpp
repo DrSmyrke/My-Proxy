@@ -15,8 +15,10 @@ int main(int argc, char *argv[])
 	app::addUser( "admin", "admin", UserGrpup::admins );
 	app::addUser( "test", "test" );
 
-	Server* server=new Server();
-	server->run();
+	//Server* server = new Server();
+	//server->run();
+	Server server;
+	if( !server.run() ) return 0;
 
 	return a.exec();
 }

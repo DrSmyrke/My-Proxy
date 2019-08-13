@@ -3,8 +3,6 @@
 #include <QDateTime>
 #include <QSettings>
 #include <QUrl>
-//TODO: remove qdebug
-#include <QDebug>
 
 
 
@@ -51,6 +49,14 @@ namespace app {
 		app::addGlobalBlackUrl("*/banner");
 		app::addGlobalBlackUrl("*/popup");
 		app::addGlobalBlackUrl("*/popups");
+
+#ifdef __linux__
+
+#elif _WIN32
+	QDir dir(QDir::homePath());
+	dir.mkdir("webProxy");
+#endif
+
 	}
 
 	void saveSettings()
@@ -132,22 +138,11 @@ namespace app {
 	bool addUser(const QString &login, const QString &pass, const uint8_t group)
 	{
 		bool res = true;
-		auto hash = mf::md5(pass.toLatin1());
-		hash.append( app::conf.codeWord );
 		User user;
 		user.login = login;
-		user.pass = mf::md5( hash );
+		user.pass = mf::md5( login.toUtf8() + ":" + app::conf.realmString + ":" + pass.toUtf8() ).toHex();
 		user.group = group;
 		app::conf.users.push_back( user );
-		return res;
-	}
-
-	bool passIsValid(const QString &pass, const QString &hash)
-	{
-		bool res = false;
-		auto newhash = mf::md5(pass.toLatin1());
-		newhash.append( app::conf.codeWord );
-		res = ( hash == mf::md5( newhash ) )?true:false;
 		return res;
 	}
 
@@ -156,7 +151,8 @@ namespace app {
 		bool res = false;
 		for( auto &user:app::conf.users){
 			if( user.login == login ){
-				if( app::passIsValid( pass, user.pass ) ){
+				auto newPass = mf::md5( login.toUtf8() + ":" + app::conf.realmString + ":" + pass.toUtf8() ).toHex();
+				if( newPass == user.pass ){
 					QDateTime dt = QDateTime::currentDateTime();
 					user.lastLoginTimestamp = dt.toTime_t();
 					res = true;
@@ -172,11 +168,12 @@ namespace app {
 		for( auto &user:app::conf.users ) user.connections = 0;
 	}
 
-	void usersConnectionsNumAdd(const QString &login, const uint32_t num)
+	void usersConnectionsNumAdd(const QString &login, const int32_t num)
 	{
 		for( auto &user:app::conf.users ){
 			if( user.login == login ){
-				user.connections += num;
+				int32_t r = user.connections + num;
+				if( r >= 0 ) user.connections += num;
 				break;
 			}
 		}
@@ -452,44 +449,55 @@ namespace app {
 		return ba;
 	}
 
-	bool strFind(const QString &inStr, const QString &dataStr)
-	{
-		bool ret = false;
-
-		if( dataStr.isEmpty() || inStr.isEmpty() ) return ret;
-		if( inStr.left(1) == "*" && inStr.right(1) == "*" ){
-			QString findStr = inStr;
-			findStr.remove( 0, 1 );
-			findStr.remove( findStr.length() - 1, 1 );
-			if( dataStr.contains( findStr, Qt::CaseInsensitive ) ) ret = true;
-		}
-		if( inStr.left(1) == "*" && inStr.right(1) != "*" ){
-			QString findStr = inStr;
-			findStr.remove( 0, 1 );
-			if( dataStr.right( findStr.length() ) == findStr ) ret = true;
-		}
-		if( inStr.left(1) != "*" && inStr.right(1) == "*" ){
-			QString findStr = inStr;
-			findStr.remove( findStr.length() - 1, 1 );
-			if( dataStr.indexOf( findStr, Qt::CaseInsensitive ) == 0 ) ret = true;
-		}
-		if( inStr.left(1) != "*" && inStr.right(1) != "*" ){ if( dataStr == inStr ) ret = true; }
-
-		return ret;
-	}
-
 	bool findInBlackList(const QString &url, const std::vector<QString> &data)
 	{
 		bool res = false;
 
 		for( auto elem:data ){
-			if( app::strFind( elem, url ) ){
+			if( mf::strFind( elem, url ) ){
 				res = true;
 				break;
 			}
 		}
 
 		return res;
+	}
+
+	QString getAuthString()
+	{
+		QString str;
+
+		switch (app::conf.authMethod){
+			case  http::AuthMethod::Basic:	str += "Basic realm=\"" + app::conf.realmString + "\"";		break;
+			case  http::AuthMethod::Digest:
+				//str += "Digest realm=\"" + app::conf.realmString + "\", qop=\"auth,auth-int\", nonce=\"" + mf::md5(dtStr).toHex() + "\",opaque=\"" + mf::md5(app::conf.realmString).toHex() + "\"";
+				str += "Digest realm=\"" + app::conf.realmString + "\", qop=auth, nonce=\"" + app::getNonceCode() + "\",opaque=\"" + mf::md5(app::conf.realmString).toHex() + "\"";
+				//str += "Digest realm=\"" + app::conf.realmString + "\", nonce=\"" + app::getNonceCode() + "\",opaque=\"" + mf::md5(app::conf.realmString).toHex() + "\"";
+			break;
+		}
+		return str;
+	}
+
+	QByteArray getNonceCode()
+	{
+		QDateTime dt = QDateTime::currentDateTime();
+		QByteArray dtStr;
+		dtStr.append( dt.toString("yyyy.MM.dd") );
+		return mf::md5(dtStr).toHex();
+	}
+
+	QByteArray getHA1Code(const QString &login)
+	{
+		QByteArray HA1;
+
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				HA1.append( user.pass );
+				break;
+			}
+		}
+
+		return HA1;
 	}
 
 }

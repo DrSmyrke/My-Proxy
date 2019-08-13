@@ -35,24 +35,19 @@ void Client::stop()
 void Client::slot_clientReadyRead()
 {
 	QByteArray buff;
+
 	while( m_pClient->bytesAvailable() ){
-		QByteArray tmp = m_pClient->read(1);
-		buff.append( tmp );
+		buff.append( m_pClient->read(1024) );
 		if( m_pTarget->isOpen() ){
 			sendToTarget( buff );
 			buff.clear();
 		}
 	}
+
 	app::setLog(5,QString("Client::slot_clientReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
 
-	//qDebug()<<buff;
-
-	//TODO: Обработка блокировки и отключения клиента	sendResponse( 423, "Locked" );
-
-	if( m_pTarget->isOpen() ){
-		sendToTarget( buff );
-		return;
-	}
+	// Если данные уже отправили выходим
+	if( buff.size() == 0 ) return;
 
 	auto pkt = http::parsPkt( buff );
 	if( !pkt.head.valid ){
@@ -60,25 +55,32 @@ void Client::slot_clientReadyRead()
 		return;
 	}
 
-	if( !pkt.head.proxyAuthorization.isEmpty() ) parsAuth( pkt.head.proxyAuthorization );
+	//qDebug()<<"Client::slot_clientReadyRead()"<<buff<<m_pClient->peerAddress().toString();
+
+	//TODO: Обработка блокировки и отключения клиента	sendResponse( 423, "Locked" );
+
+	if( !pkt.head.proxyAuthorization.isEmpty() ) parsAuth( pkt.head.proxyAuthorization, pkt.head.request.method );
 	if( !m_auth ){
-		if( failedAuthorization >= app::conf.maxFailedAuthorization ){
+		if( m_failedAuthorization >= app::conf.maxFailedAuthorization ){
 			sendNoAccess();
 			return;
 		}
-		failedAuthorization++;
+		m_failedAuthorization++;
 		sendNoAuth();
 		return;
 	}
 
-
-
-	//TODO: Реализовать ограничение колличество соединений на клиента	sendResponse(429,"Too Many Requests");
-
+	// Превышение числа коннектов на пользователя
+	if( m_user.connections >= m_user.maxConnections ){
+		sendResponse(429,"Too Many Requests");
+		stop();
+		return;
+	}
 
 	QString addr;
 	QString path;
 	uint16_t port = 80;
+
 
 	if( pkt.head.valid && pkt.head.isRequest ){
 		if( pkt.head.request.method == "CONNECT" ){
@@ -89,7 +91,7 @@ void Client::slot_clientReadyRead()
 			m_proto = http::Proto::HTTPS;
 			//Black list addrs
 			if( app::findInBlackList( addr, app::blackList.addrs ) ){
-				m_proto = http::Proto::UNKNOW;
+				m_proto = http::Proto::UNKNOWN;
 				buff.clear();
 			}
 		}
@@ -116,20 +118,27 @@ void Client::slot_clientReadyRead()
 			if( pkt.head.host != app::conf.adminkaHostAddr ) app::addOpenUrl(url);
 			//Black list urls
 			if( app::findInBlackList( url.toString(), app::blackList.urls ) ){
-				m_proto = http::Proto::UNKNOW;
+				m_proto = http::Proto::UNKNOWN;
 				buff.clear();
+				//sendResponse( 423, "Locked" );
+				moveToLockedPage();
+				stop();
+				return;
 			}
 		}
 	}
 
-	if( pkt.head.isRequest && m_proto != http::Proto::UNKNOW ){
+	if( pkt.head.isRequest && m_proto != http::Proto::UNKNOWN ){
 		//dont statistic settings url
 		if( pkt.head.host != app::conf.adminkaHostAddr ) app::addOpenAddr( addr );
 	}
 
 
-
-
+	if( m_proto == http::Proto::UNKNOWN ){
+		sendResponse( 400, "<h1>Bad Request</h1>" );
+		if( m_pTarget->isOpen() ) m_pTarget->close();
+		return;
+	}
 
 
 
@@ -186,21 +195,6 @@ void Client::slot_clientReadyRead()
 
 
 
-
-
-
-
-
-
-
-
-
-
-	if( m_proto == http::Proto::UNKNOW ){
-		sendResponse( 400, "<h1>Bad Request</h1>" );
-		if( m_pTarget->isOpen() ) m_pTarget->close();
-		return;
-	}
 
 	if( m_pTarget->isOpen() ){
 		sendToTarget( buff );
@@ -308,12 +302,9 @@ void Client::sendNoAuth()
 	http::pkt pkt;
 	pkt.head.response.code = 407;
 	pkt.head.response.comment = "Proxy Authentication Required";
-	//TODO: Доделать прочие типы авторизаций
-	switch (app::conf.authMetod){
-		case  http::AuthMethod::Basic:	pkt.head.proxyAuthenticate = "Basic realm=ProxyAuth";	break;
-		//case  http::AuthMethod::Digest:	pkt.head.proxyAuthenticate = "Digest realm=ProxyAuth";	break;
-	}
+	pkt.head.proxyAuthenticate = app::getAuthString();
 	pkt.body.rawData.append( app::getHtmlPage("Service page","<h1>Proxy Authentication Required</h1>") );
+	pkt.head.connection = "keep-alive";
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -326,6 +317,8 @@ void Client::sendNoAccess()
 	pkt.body.rawData.append( app::getHtmlPage("Service page","<h1>Too many failed authorization attempts, access for your IP is blocked for another 30 minutes. Total blocking time:</h1>") );
 	sendToClient( http::buildPkt(pkt) );
 	//TODO: Сделать блокировку по IP еще на 30 минут
+
+	stop();
 }
 
 void Client::sendToClient(const QByteArray &data)
@@ -351,25 +344,61 @@ void Client::sendToTarget(const QByteArray &data)
 	m_pTarget->waitForBytesWritten(100);
 }
 
-void Client::parsAuth(const QString &string)
+void Client::parsAuth(const QString &string, const QString &method)
 {
-	app::setLog(3,QString("Client::parsAuth [%1]").arg(string));
+	app::setLog(5,QString("Client::parsAuth [%1]").arg(string));
 
-	auto tmp = string.split(" ");
-	if( tmp.size() != 2 ) return;
-	QString method = tmp[0];
-	QString str = tmp[1];
-	if( method == "Basic" ){
-		QString decodeStr = QByteArray::fromBase64( str.toUtf8() );
-		tmp = decodeStr.split(":");
+	auto auth = http::parsAuthString(string.toUtf8());
+
+	app::setLog(5,QString("WebProxyClient::parsAuth method %1").arg(auth.method));
+
+	if( auth.method == http::AuthMethod::Basic && app::conf.authMethod == http::AuthMethod::Basic ){
+		QByteArray decodeStr = QByteArray::fromBase64( auth.BasicString );
+		auto tmp = decodeStr.split(':');
 		if( tmp.size() != 2 ) return;
 		QString login = tmp[0];
 		QString pass = tmp[1];
 		if( app::chkAuth( login, pass ) ){
-			app::setLog(4,QString("WebProxyClient::parsAuth %1 auth true").arg(login));
+			app::setLog(3,QString("WebProxyClient::parsAuth %1 auth true").arg(login));
 			app::getUserData( m_user, login );
 			m_auth = true;
-			emit signal_authOK();
 		}
 	}
+
+	if( auth.method == http::AuthMethod::Digest && app::conf.authMethod == http::AuthMethod::Digest ){
+
+		QByteArray HA1 = app::getHA1Code( auth.username );
+		QByteArray HA2;
+		QByteArray response;
+
+		if( auth.qop == "auth-int" ){
+			//TODO: Доделать
+			//HA2 = mf::md5( method.toUtf8() + ":" + auth.uri + ":" + mf::md5(<entityBody>).toHex() ).toHex();
+			//response = mf::md5( HA1 + ":" + app::getNonceCode() + ":" + auth.nc.toUtf8() + ":" + auth.cnonce.toUtf8() + ":" + auth.qop.toUtf8() + ":" + HA2  ).toHex();
+		}
+		if( auth.qop == "auth" ){
+			HA2 = mf::md5( method.toUtf8() + ":" + auth.uri.toUtf8() ).toHex();
+			response = mf::md5( HA1 + ":" + app::getNonceCode() + ":" + auth.nc.toUtf8() + ":" + auth.cnonce.toUtf8() + ":" + auth.qop.toUtf8() + ":" + HA2  ).toHex();
+		}
+		if( auth.qop != "auth" && auth.qop != "auth-int" ){
+			HA2 = mf::md5( method.toUtf8() + ":" + auth.uri.toUtf8() ).toHex();
+			response = mf::md5( HA1 + ":" + app::getNonceCode() + ":" + HA2  ).toHex();
+		}
+
+		if( response == auth.response ){
+			app::setLog(4,QString("WebProxyClient::parsAuth %1 auth true").arg(auth.username));
+			app::getUserData( m_user, auth.username );
+			m_auth = true;
+		}
+	}
+}
+
+void Client::moveToLockedPage()
+{
+	http::pkt pkt;
+	pkt.head.response.code = 301;
+	pkt.head.response.comment = "Moved Permanently";
+	pkt.head.location = app::conf.adminkaHostAddr + "/locked";
+	pkt.head.connection = "keep-alive";
+	sendToClient( http::buildPkt(pkt) );
 }

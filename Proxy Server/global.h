@@ -20,6 +20,7 @@ struct User{
 	uint8_t group = UserGrpup::users;
 	uint32_t lastLoginTimestamp = 0;
 	uint32_t connections = 0;
+	uint32_t maxConnections = 10;
 };
 
 struct HtmlPage{
@@ -39,21 +40,27 @@ struct HtmlPage{
 struct Config{
 	bool verbose						= false;
 	uint8_t logLevel					= 3;
-	QString logFile						= "webProxy.log";
-	QString blackUrlsFile				= "blackUrls.list";
-	QString blackAddrsFile				= "blackAddrs.list";
+#ifdef __linux__
+	QString logFile						= "/etc/DrSmyrke/webproxy/webProxy.log";
+	QString blackUrlsFile				= "/etc/DrSmyrke/webproxy/blackUrls.list";
+	QString blackAddrsFile				= "/etc/DrSmyrke/webproxy/blackAddrs.list";
+#elif _WIN32
+	QString logFile						= QDir::homePath() + "/webProxy/webProxy.log";
+	QString blackUrlsFile				= QDir::homePath() + "/webProxy/blackUrls.list";
+	QString blackAddrsFile				= QDir::homePath() + "/webProxy/blackAddrs.list";
+#endif
 	uint8_t maxThreads					= 3;
 	uint8_t maxClients					= 37;
 	uint16_t port						= 7300;
 	std::vector<QString> socksClients;
 	std::vector<User> users;
-	uint8_t authMetod					= http::AuthMethod::Basic;
-	QString codeWord					= "DeadBeef";
+	uint8_t authMethod					= http::AuthMethod::Digest;
 	HtmlPage page;
 	uint8_t maxFailedAuthorization		= 5;
 	uint16_t maxStatusListSize			= 65000;
 	bool saveSettings					= false;
 	QString adminkaHostAddr				= "config:73";
+	QByteArray realmString				= "ProxyAuth";
 };
 
 struct BlackList{
@@ -81,10 +88,9 @@ namespace app {
 	void setLog(const uint8_t logLevel, const QString &mess);
 	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content);
 	bool addUser(const QString &login, const QString &pass, const uint8_t group = UserGrpup::users);
-	bool passIsValid(const QString &pass, const QString &hash);
 	bool chkAuth(const QString &login, const QString &pass);
 	void usersConnectionsClear();
-	void usersConnectionsNumAdd(const QString &login, const uint32_t num);
+	void usersConnectionsNumAdd(const QString &login, const int32_t num = 1);
 	void addOpenUrl(const QUrl &url);
 	void addOpenAddr(const QString &addr);
 	void loadResource(const QString &fileName, QByteArray &data);
@@ -95,8 +101,10 @@ namespace app {
 	QByteArray parsRequest(const QString &data , const User &userData);
 	void getUserData(User &userData, const QString &login);
 	QByteArray processingRequest(const QString &method, const std::map<QByteArray, std::vector<QByteArray> > &args, const User &userData);
-	bool strFind(const QString &inStr, const QString &dataStr);
 	bool findInBlackList(const QString &url, const std::vector<QString> &data);
+	QString getAuthString();
+	QByteArray getNonceCode();
+	QByteArray getHA1Code(const QString &login);
 }
 
 #endif // GLOBAL_H
