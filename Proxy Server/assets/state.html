@@ -1,29 +1,33 @@
-<fieldset class="block"><legend>Threads</legend>
-	<div id="threads"></div>
-</fieldset>
+<div class="block">
+	<div class="legend">Threads</div>
+	<div class="content" id="threads"></div>
+</div>
 
-<fieldset class="block"><legend>Users</legend>
-	<div id="users"></div>
-</fieldset>
+<div class="block">
+	<div class="legend">Users</div>
+	<div class="content" id="users"></div>
+</div>
 
-<fieldset class="block"><legend>Connections</legend>
-	<div id="connections"></div>
-</fieldset>
+<div class="block">
+	<div class="legend">Connections</div>
+	<div class="content" id="connections"></div>
+</div>
 
-<fieldset class="block"><legend>Open URL`s</legend>
-	<div id="openUrls"></div>
-</fieldset>
+<div class="block">
+	<div class="legend">Open URL`s</div>
+	<div class="content" id="openUrls"></div>
+</div>
 
-<fieldset class="block"><legend>Open ADDR`s</legend>
-	<div id="openAddrs"></div>
-</fieldset>
+<div class="block">
+	<div class="legend">Open ADDR`s</div>
+	<div class="content" id="openAddrs"></div>
+</div>
 
 <script type="text/javascript">
 	var i = 0;
 	var urlArray = new Array(
 		"/get?con=threads",
 		"/get?con=users",
-		//"/get?con=connections",
 		"/get?con=openUrls",
 		"/get?con=openAddrs",
 	);

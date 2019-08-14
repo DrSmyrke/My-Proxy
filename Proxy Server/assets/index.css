@@ -51,26 +51,28 @@ a{ color: #459EBC; }
 table{ border-collapse: collapse; }
 tr{ border-bottom: 1px solid silver; }
 tr:last-child{ border: none; }
-legend{
+.block table{ width: 100%; }
+.block{
+	width: 31.0345%;
+	display: inline-block;
+	padding: 10px;
+	vertical-align: top;
+	margin: 20px;
+}
+.block .legend{
 	text-transform: uppercase;
 	margin: 0px;
 	color: #7D7C81;
-	position: relative;
-	top: -12px;
-	left: -12px;
-}
-.block table{ width: 100%; }
-.block{
-	width: 300px;
-	border: none;
-	display: inline-block;
-	background: white;
-	padding: 10px;
-	border-radius: 5px;
-	vertical-align: top;
-	margin: 10px;
 	text-align: left;
-	padding-top: 0px;
+}
+.block .content{
+	background-color: rgba(100,100,100,0.05);
+	overflow: auto;
+	max-height: 520px;
+	border-radius: 5px;
+	width: 100%;
+	text-align: left;
+	padding: 5px;
 }
 input[type="text"]{
 	border: none;
