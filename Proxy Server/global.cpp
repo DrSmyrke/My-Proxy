@@ -262,6 +262,16 @@ namespace app {
 
 		if( !find ){
 			app::blackList.urls.push_back( str );
+			uint16_t i = 0;
+			bool find = false;
+			for( auto addr:app::state.urls ){
+				if( addr == str ){
+					find = true;
+					break;
+				}
+				i++;
+			}
+			if( find ) app::state.urls.erase( app::state.urls.begin() + i );
 			app::blackList.urlsFileSave = true;
 		}
 	}
@@ -279,6 +289,16 @@ namespace app {
 
 		if( !find ){
 			app::blackList.addrs.push_back( str );
+			uint16_t i = 0;
+			bool find = false;
+			for( auto addr:app::state.addrs ){
+				if( addr == str ){
+					find = true;
+					break;
+				}
+				i++;
+			}
+			if( find ) app::state.addrs.erase( app::state.addrs.begin() + i );
 			app::blackList.addrsFileSave = true;
 		}
 	}
