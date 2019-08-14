@@ -19,6 +19,8 @@ namespace app {
 		app::conf.port = settings.value("SERVER/port",app::conf.port).toUInt();
 		app::conf.blackUrlsFile = settings.value("SERVER/blackUrlsFile",app::conf.blackUrlsFile).toString();
 		app::conf.blackAddrsFile = settings.value("SERVER/blackAddrsFile",app::conf.blackAddrsFile).toString();
+		app::conf.logFile = settings.value("SERVER/logFile",app::conf.logFile).toString();
+		app::conf.logLevel = settings.value("SERVER/logLevel",app::conf.logLevel).toUInt();
 
 
 		app::loadResource( ":/pages/assets/top.html", app::conf.page.top );
@@ -68,6 +70,9 @@ namespace app {
 			settings.setValue("SERVER/port",app::conf.port);
 			settings.setValue("SERVER/blackUrlsFile",app::conf.blackUrlsFile);
 			settings.setValue("SERVER/blackAddrsFile",app::conf.blackAddrsFile);
+			settings.setValue("SERVER/logFile",app::conf.logFile);
+			settings.setValue("SERVER/logLevel",app::conf.logLevel);
+
 			app::conf.saveSettings = false;
 		}
 		if( app::blackList.urlsFileSave ){
@@ -152,11 +157,7 @@ namespace app {
 		for( auto &user:app::conf.users){
 			if( user.login == login ){
 				auto newPass = mf::md5( login.toUtf8() + ":" + app::conf.realmString + ":" + pass.toUtf8() ).toHex();
-				if( newPass == user.pass ){
-					QDateTime dt = QDateTime::currentDateTime();
-					user.lastLoginTimestamp = dt.toTime_t();
-					res = true;
-				}
+				if( newPass == user.pass ) res = true;
 				break;
 			}
 		}
@@ -406,24 +407,15 @@ namespace app {
 						}
 						ba.append("</table>");
 					}
-					if( type.first == "con" && value == "connections" ){
-						ba.append("connections:>:");
-						ba.append("<table>");
-						for( auto user:app::conf.users ){
-							ba.append("<tr>");
-							ba.append( QString("<td>" + user.login + "</td><td> " + QString::number( user.connections ) + "</td>") );
-							ba.append("</tr>");
-						}
-						ba.append("</table>");
-					}
-					if( type.first == "con" && value == "activeUsers" ){
-						ba.append("activeUsers:>:");
+					if( type.first == "con" && value == "users" ){
+						ba.append("users:>:");
 						QDateTime dt = QDateTime::currentDateTime();
 						ba.append("<table>");
 						for( auto user:app::conf.users ){
 							uint32_t lastLoginSec = dt.toTime_t() - user.lastLoginTimestamp;
 							ba.append("<tr>");
 							ba.append( QString("<td>" + user.login + "</td><td> " + QString::number( lastLoginSec ) + " sec. ago</td>") );
+							ba.append( QString("<td> " + QString::number( user.connections ) + " / " + QString::number( user.maxConnections ) + "</td>") );
 							ba.append("</tr>");
 						}
 						ba.append("</table>");
@@ -498,6 +490,17 @@ namespace app {
 		}
 
 		return HA1;
+	}
+
+	void updateLoginTimestamp(const QString &login)
+	{
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				QDateTime dt = QDateTime::currentDateTime();
+				user.lastLoginTimestamp = dt.toTime_t();
+				break;
+			}
+		}
 	}
 
 }

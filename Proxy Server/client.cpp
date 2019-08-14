@@ -87,7 +87,7 @@ void Client::slot_clientReadyRead()
 			auto tmp = pkt.head.request.target.split(":");
 			if( tmp.size() > 0 ) addr = tmp[0];
 			if( tmp.size() == 2 ) port = tmp[1].toUInt();
-			app::setLog(3,QString("WebProxyClient::slot_clientReadyRead HTTPS Request to [%1]").arg(pkt.head.request.target));
+			app::setLog(4,QString("WebProxyClient::slot_clientReadyRead HTTPS Request to [%1]").arg(pkt.head.request.target));
 			m_proto = http::Proto::HTTPS;
 			//Black list addrs
 			if( app::findInBlackList( addr, app::blackList.addrs ) ){
@@ -114,8 +114,6 @@ void Client::slot_clientReadyRead()
 			buff.clear();
 			buff.append( http::buildPkt( pkt ) );
 			m_proto = http::Proto::HTTP;
-			//dont statistic settings url
-			if( pkt.head.host != app::conf.adminkaHostAddr ) app::addOpenUrl(url);
 			//Black list urls
 			if( app::findInBlackList( url.toString(), app::blackList.urls ) ){
 				m_proto = http::Proto::UNKNOWN;
@@ -125,6 +123,8 @@ void Client::slot_clientReadyRead()
 				stop();
 				return;
 			}
+			//dont statistic settings url
+			if( pkt.head.host != app::conf.adminkaHostAddr ) app::addOpenUrl(url);
 		}
 	}
 
@@ -282,7 +282,7 @@ void Client::sendResponse(const uint16_t code, const QString &comment)
 	pkt.head.response.code = code;
 	pkt.head.response.comment = comment;
 	pkt.body.rawData.append( app::getHtmlPage("Service page",comment.toLatin1()) );
-	app::setLog(3,QString("WebProxyClient::sendResponse [%1]").arg(pkt.head.response.code));
+	app::setLog(4,QString("WebProxyClient::sendResponse [%1]").arg(pkt.head.response.code));
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -293,7 +293,7 @@ void Client::sendRawResponse(const uint16_t code, const QString &comment, const 
 	pkt.head.response.comment = comment;
 	if( !mimeType.isEmpty() ) pkt.head.contType = mimeType;
 	pkt.body.rawData.append( data );
-	app::setLog(3,QString("WebProxyClient::sendRawResponse [%1]").arg(pkt.head.response.code));
+	app::setLog(4,QString("WebProxyClient::sendRawResponse [%1]").arg(pkt.head.response.code));
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -306,6 +306,7 @@ void Client::sendNoAuth()
 	pkt.body.rawData.append( app::getHtmlPage("Service page","<h1>Proxy Authentication Required</h1>") );
 	pkt.head.connection = "keep-alive";
 	sendToClient( http::buildPkt(pkt) );
+	app::setLog(4,QString("WebProxyClient::sendNoAuth [%1]").arg(m_pClient->peerAddress().toString()));
 }
 
 void Client::sendNoAccess()
@@ -318,6 +319,7 @@ void Client::sendNoAccess()
 	sendToClient( http::buildPkt(pkt) );
 	//TODO: Сделать блокировку по IP еще на 30 минут
 
+	app::setLog(4,QString("WebProxyClient::sendNoAccess [%1]").arg(m_pClient->peerAddress().toString()));
 	stop();
 }
 
@@ -359,8 +361,9 @@ void Client::parsAuth(const QString &string, const QString &method)
 		QString login = tmp[0];
 		QString pass = tmp[1];
 		if( app::chkAuth( login, pass ) ){
-			app::setLog(3,QString("WebProxyClient::parsAuth %1 auth true").arg(login));
+			app::setLog(4,QString("WebProxyClient::parsAuth %1 auth true").arg(login));
 			app::getUserData( m_user, login );
+			app::updateLoginTimestamp( login );
 			m_auth = true;
 		}
 	}
@@ -388,6 +391,7 @@ void Client::parsAuth(const QString &string, const QString &method)
 		if( response == auth.response ){
 			app::setLog(4,QString("WebProxyClient::parsAuth %1 auth true").arg(auth.username));
 			app::getUserData( m_user, auth.username );
+			app::updateLoginTimestamp( auth.username );
 			m_auth = true;
 		}
 	}
@@ -401,4 +405,6 @@ void Client::moveToLockedPage()
 	pkt.head.location = app::conf.adminkaHostAddr + "/locked";
 	pkt.head.connection = "keep-alive";
 	sendToClient( http::buildPkt(pkt) );
+
+	app::setLog(4,QString("WebProxyClient::moveToLockedPage [%1]").arg(m_pClient->peerAddress().toString()));
 }

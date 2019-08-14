@@ -9,6 +9,8 @@ int main(int argc, char *argv[])
 	app::loadSettings();
 	if( !app::parsArgs(argc, argv) ) return 0;
 
+	if( !app::conf.logFile.isEmpty() ) QFile( app::conf.logFile ).remove();
+
 	//TODO:remove
 	app::conf.socksClients.push_back( "192.168.1.250" );
 	app::conf.socksClients.push_back( "127.0.0.1" );

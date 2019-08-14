@@ -20,7 +20,7 @@ struct User{
 	uint8_t group = UserGrpup::users;
 	uint32_t lastLoginTimestamp = 0;
 	uint32_t connections = 0;
-	uint32_t maxConnections = 10;
+	uint32_t maxConnections = 37;
 };
 
 struct HtmlPage{
@@ -41,23 +41,23 @@ struct Config{
 	bool verbose						= false;
 	uint8_t logLevel					= 3;
 #ifdef __linux__
-	QString logFile						= "/etc/DrSmyrke/webproxy/webProxy.log";
-	QString blackUrlsFile				= "/etc/DrSmyrke/webproxy/blackUrls.list";
-	QString blackAddrsFile				= "/etc/DrSmyrke/webproxy/blackAddrs.list";
+	QString logFile						= "/var/log/webproxy.log";
+	QString blackUrlsFile				= "/usr/share/webproxy/blackUrls.list";
+	QString blackAddrsFile				= "/usr/share/webproxy/blackAddrs.list";
 #elif _WIN32
-	QString logFile						= QDir::homePath() + "/webProxy/webProxy.log";
+	QString logFile						= QDir::homePath() + "/webProxy/webproxy.log";
 	QString blackUrlsFile				= QDir::homePath() + "/webProxy/blackUrls.list";
 	QString blackAddrsFile				= QDir::homePath() + "/webProxy/blackAddrs.list";
 #endif
 	uint8_t maxThreads					= 3;
 	uint8_t maxClients					= 37;
-	uint16_t port						= 7300;
+	uint16_t port						= 7301;
 	std::vector<QString> socksClients;
 	std::vector<User> users;
 	uint8_t authMethod					= http::AuthMethod::Digest;
 	HtmlPage page;
 	uint8_t maxFailedAuthorization		= 5;
-	uint16_t maxStatusListSize			= 65000;
+	uint16_t maxStatusListSize			= 1024;
 	bool saveSettings					= false;
 	QString adminkaHostAddr				= "config:73";
 	QByteArray realmString				= "ProxyAuth";
@@ -105,6 +105,7 @@ namespace app {
 	QString getAuthString();
 	QByteArray getNonceCode();
 	QByteArray getHA1Code(const QString &login);
+	void updateLoginTimestamp(const QString &login);
 }
 
 #endif // GLOBAL_H
