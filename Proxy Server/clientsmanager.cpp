@@ -45,7 +45,7 @@ void ClientsManager::slot_recount(){
 		if( !user.isEmpty() ) app::usersConnectionsNumAdd( user, 1 );
 	}
 
-	emit signal_recount( this, m_clients.size() );
+	app::state.threads.push_back( m_clients.size() );
 }
 
 void ClientsManager::slot_clientFinished()

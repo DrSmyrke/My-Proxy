@@ -107,7 +107,7 @@ void Client::slot_clientReadyRead()
 				if( !url.query().isEmpty() ) path += "?" + url.query();
 				path.replace( " ", "%20" );
 			}
-			app::setLog(3,QString("WebProxyClient::slot_clientReadyRead HTTP Request to [%1:%2] %3").arg(addr).arg(port).arg(path));
+			app::setLog(4,QString("WebProxyClient::slot_clientReadyRead HTTP Request to [%1:%2] %3").arg(addr).arg(port).arg(path));
 			pkt.head.request.target = path;
 			pkt.head.proxyAuthorization.clear();
 			//pkt.head.connection = "close";
@@ -325,7 +325,7 @@ void Client::sendNoAccess()
 
 void Client::sendToClient(const QByteArray &data)
 {
-	if( m_pClient->state() != QAbstractSocket::ConnectedState ) m_pClient->waitForConnected();
+	if( m_pClient->state() == QAbstractSocket::ConnectingState ) m_pClient->waitForConnected();
 	if( m_pClient->state() != QAbstractSocket::ConnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
@@ -334,7 +334,7 @@ void Client::sendToClient(const QByteArray &data)
 void Client::sendToTarget(const QByteArray &data)
 {
 	if( data.size() == 0 ) return;
-	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) m_pTarget->waitForConnected();
+	if( m_pTarget->state() == QAbstractSocket::ConnectingState ) m_pTarget->waitForConnected();
 	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) return;
 	if( m_proto == http::Proto::HTTPS ){
 		m_pTarget->write( data );

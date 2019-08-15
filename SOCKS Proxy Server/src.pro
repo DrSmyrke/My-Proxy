@@ -2,7 +2,7 @@ QT += core
 QT += network
 QT -= gui
 
-TARGET = SOCKSproxy
+TARGET = socksproxy
 CONFIG += console c++11
 CONFIG -= app_bundle
 

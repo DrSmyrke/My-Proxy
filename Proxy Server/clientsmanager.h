@@ -18,7 +18,6 @@ public slots:
 	void slot_recount();
 signals:
 	void signal_finished(ClientsManager* manager);
-	void signal_recount(ClientsManager* manager, int clientsCount);
 private slots:
 	void slot_clientFinished();
 private:

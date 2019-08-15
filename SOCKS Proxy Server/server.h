@@ -15,7 +15,8 @@ class Server : public QTcpServer
 public:
 	explicit Server(QObject *parent = 0);
 	~Server();
-	void run();
+	bool run();
+	void stop();
 protected:
 	void incomingConnection(qintptr socketDescriptor);
 signals:

@@ -64,14 +64,6 @@ void ThreadManager::newThread(qintptr handle)
 	connect( manager, &ClientsManager::signal_finished ,thread, &QThread::quit );
 	connect( this, &ThreadManager::signal_stopAll, manager, &ClientsManager::slot_stop );
 	connect( this, &ThreadManager::signal_recount, manager, &ClientsManager::slot_recount );
-	connect( manager, &ClientsManager::signal_recount, this, [this](ClientsManager* cmanager, int clientsCount){
-		for( auto clientManager:m_clientsManager ){
-			if( clientManager == cmanager ){
-				app::state.threads.push_back( clientsCount );
-				break;
-			}
-		}
-	} );
 
 	connect( manager, &ClientsManager::signal_finished, this, [this](ClientsManager* cmanager){
 		m_clientsManager.removeOne(cmanager);

@@ -1,15 +1,22 @@
 #ifndef CLIENT_H
 #define CLIENT_H
 
-#include <QThread>
+#include <QObject>
 #include <QTcpSocket>
 
 #include "global.h"
 
-class Client : public QThread
+class Client : public QObject
 {
 	Q_OBJECT
 public:
+	struct Pkt{
+		uint8_t version;
+		uint8_t cmd;
+		uint16_t port;
+		uint32_t ip;
+		QHostAddress addr;
+	};
 	explicit Client(qintptr descriptor, QObject *parent = 0);
 	void run() { slot_start(); }
 signals:
@@ -17,14 +24,18 @@ signals:
 public slots:
 	void slot_start();
 	void slot_stop();
+private slots:
+	void slot_clientReadyRead();
+	void slot_targetReadyRead();
 private:
 	QTcpSocket* m_pClient;
-	QTcpSocket* m_pRClient;
-	bool m_cmd=false;
+	QTcpSocket* m_pTarget;
+	bool m_tunnel;
 
-	QString& parsHead(const QString &data);
 	void sendError();
 	void log(const QString &text);
+	void sendToClient(const QByteArray &data);
+	void sendToTarget(const QByteArray &data);
 };
 
 #endif // CLIENT_H

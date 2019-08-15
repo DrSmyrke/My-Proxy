@@ -13,14 +13,14 @@ namespace app {
 
 	void loadSettings()
 	{
-		QSettings settings("MySoft","WebProxy");
+		QSettings settings("MySoft","MyProxy");
 
-		app::conf.maxThreads = settings.value("SERVER/maxThreads",app::conf.maxThreads).toUInt();
-		app::conf.port = settings.value("SERVER/port",app::conf.port).toUInt();
-		app::conf.blackUrlsFile = settings.value("SERVER/blackUrlsFile",app::conf.blackUrlsFile).toString();
-		app::conf.blackAddrsFile = settings.value("SERVER/blackAddrsFile",app::conf.blackAddrsFile).toString();
-		app::conf.logFile = settings.value("SERVER/logFile",app::conf.logFile).toString();
-		app::conf.logLevel = settings.value("SERVER/logLevel",app::conf.logLevel).toUInt();
+		app::conf.maxThreads = settings.value("WEB PROXY/maxThreads",app::conf.maxThreads).toUInt();
+		app::conf.port = settings.value("WEB PROXY/port",app::conf.port).toUInt();
+		app::conf.blackUrlsFile = settings.value("WEB PROXY/blackUrlsFile",app::conf.blackUrlsFile).toString();
+		app::conf.blackAddrsFile = settings.value("WEB PROXY/blackAddrsFile",app::conf.blackAddrsFile).toString();
+		app::conf.logFile = settings.value("WEB PROXY/logFile",app::conf.logFile).toString();
+		app::conf.logLevel = settings.value("WEB PROXY/logLevel",app::conf.logLevel).toUInt();
 
 
 		app::loadResource( ":/pages/assets/top.html", app::conf.page.top );
@@ -56,7 +56,7 @@ namespace app {
 
 #elif _WIN32
 	QDir dir(QDir::homePath());
-	dir.mkdir("webProxy");
+	dir.mkdir("MyProxy");
 #endif
 
 	}
@@ -64,14 +64,14 @@ namespace app {
 	void saveSettings()
 	{
 		if( app::conf.saveSettings ){
-			QSettings settings("MySoft","WebProxy");
+			QSettings settings("MySoft","MyProxy");
 			settings.clear();
-			settings.setValue("SERVER/maxThreads",app::conf.maxThreads);
-			settings.setValue("SERVER/port",app::conf.port);
-			settings.setValue("SERVER/blackUrlsFile",app::conf.blackUrlsFile);
-			settings.setValue("SERVER/blackAddrsFile",app::conf.blackAddrsFile);
-			settings.setValue("SERVER/logFile",app::conf.logFile);
-			settings.setValue("SERVER/logLevel",app::conf.logLevel);
+			settings.setValue("WEB PROXY/maxThreads",app::conf.maxThreads);
+			settings.setValue("WEB PROXY/port",app::conf.port);
+			settings.setValue("WEB PROXY/blackUrlsFile",app::conf.blackUrlsFile);
+			settings.setValue("WEB PROXY/blackAddrsFile",app::conf.blackAddrsFile);
+			settings.setValue("WEB PROXY/logFile",app::conf.logFile);
+			settings.setValue("WEB PROXY/logLevel",app::conf.logLevel);
 
 			app::conf.saveSettings = false;
 		}
@@ -206,6 +206,7 @@ namespace app {
 
 	void loadResource(const QString &fileName, QByteArray &data)
 	{
+		data.clear();
 		QFile file;
 
 		file.setFileName( fileName );
@@ -217,8 +218,8 @@ namespace app {
 
 	void loadBlackList(const QString &fileName, std::vector<QString> &data)
 	{
+		data.clear();
 		QFile file;
-		QByteArray buff;
 		file.setFileName( fileName );
 		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
 			QByteArray str;
@@ -400,7 +401,7 @@ namespace app {
 						ba.append("<table>");
 						for( uint8_t i = 0; i < app::state.threads.size(); i++ ){
 							ba.append("<tr>");
-							ba.append( QString("<td>Thread #" + QString::number( i ) + ":</td><td>" + QString::number( app::state.threads.at( i ) ) + "</td>") );
+							ba.append( QString("<td>Thread #" + QString::number( i ) + ":</td><td>" + QString::number( app::state.threads.at( i ) ) + " / " + QString::number( app::conf.maxClients ) + "</td>") );
 							ba.append("</tr>");
 						}
 						ba.append("</table>");

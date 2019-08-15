@@ -42,12 +42,12 @@ struct Config{
 	uint8_t logLevel					= 3;
 #ifdef __linux__
 	QString logFile						= "/var/log/webproxy.log";
-	QString blackUrlsFile				= "/usr/share/webproxy/blackUrls.list";
-	QString blackAddrsFile				= "/usr/share/webproxy/blackAddrs.list";
+	QString blackUrlsFile				= "/usr/share/MyProxy/blackUrls.list";
+	QString blackAddrsFile				= "/usr/share/MyProxy/blackAddrs.list";
 #elif _WIN32
-	QString logFile						= QDir::homePath() + "/webProxy/webproxy.log";
-	QString blackUrlsFile				= QDir::homePath() + "/webProxy/blackUrls.list";
-	QString blackAddrsFile				= QDir::homePath() + "/webProxy/blackAddrs.list";
+	QString logFile						= QDir::homePath() + "/MyProxy/webproxy.log";
+	QString blackUrlsFile				= QDir::homePath() + "/MyProxy/blackUrls.list";
+	QString blackAddrsFile				= QDir::homePath() + "/MyProxy/blackAddrs.list";
 #endif
 	uint8_t maxThreads					= 3;
 	uint8_t maxClients					= 37;
