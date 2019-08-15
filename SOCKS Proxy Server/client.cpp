@@ -69,9 +69,23 @@ void Client::slot_clientReadyRead()
 	pkt.addr.setAddress( pkt.ip );
 
 	app::setLog(5,QString("Client::slot_clientReadyRead [%1,%2,%3,%4] from [%5]").arg(pkt.version).arg(pkt.cmd).arg(pkt.port).arg(QHostAddress(pkt.ip).toString()).arg(m_pClient->peerAddress().toString()));
-	app::setLog(3,QString("Client::slot_clientReadyRead request connect [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.ip).toString()).arg(pkt.port));
+	app::setLog(4,QString("Client::slot_clientReadyRead request connect [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.ip).toString()).arg(pkt.port));
 
 	if( app::findBlockAddr( pkt.addr ) ){
+		app::setLog(4,QString("Client::slot_clientReadyRead findBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.ip).toString()).arg(pkt.port));
+		sendError();
+		slot_stop();
+		return;
+	}
+
+	if( pkt.addr.toString() == "0.0.0.0" && pkt.port == 10000 ){
+		app::loadSettings();
+		sendError();
+		slot_stop();
+		return;
+	}
+	if( pkt.addr.toString() == "0.0.0.0" && pkt.port == 20000 ){
+		app::saveSettings();
 		sendError();
 		slot_stop();
 		return;
@@ -93,7 +107,7 @@ void Client::slot_clientReadyRead()
 		m_tunnel = true;
 		return;
 	}else{
-		app::setLog(3,QString("Client::slot_clientReadyRead is not connected"));
+		app::setLog(4,QString("Client::slot_clientReadyRead is not connected"));
 		sendError();
 		slot_stop();
 		return;
@@ -104,12 +118,11 @@ void Client::slot_targetReadyRead()
 {
 	if( !m_pTarget->isReadable()) m_pTarget->waitForReadyRead(300);
 	while( m_pTarget->bytesAvailable() ) sendToClient( m_pTarget->read( 1024 ) );
-	m_pClient->waitForBytesWritten(3000);
 }
 
 void Client::sendError()
 {
-	app::setLog( 3, QString("Client::sendError: [%1]").arg(m_pClient->peerAddress().toString()) );
+	app::setLog( 4, QString("Client::sendError: [%1]").arg(m_pClient->peerAddress().toString()) );
 
 	QByteArray ret;
 		ret[0]=0x00;
@@ -127,8 +140,9 @@ void Client::sendError()
 
 void Client::sendToClient(const QByteArray &data)
 {
-	if( m_pClient->state() == QAbstractSocket::ConnectingState ) m_pClient->waitForConnected();
-	if( m_pClient->state() != QAbstractSocket::ConnectedState ) return;
+	if( data.size() == 0 ) return;
+	if( m_pClient->state() == QAbstractSocket::ConnectingState ) m_pClient->waitForConnected(300);
+	if( m_pClient->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
 }
@@ -136,8 +150,8 @@ void Client::sendToClient(const QByteArray &data)
 void Client::sendToTarget(const QByteArray &data)
 {
 	if( data.size() == 0 ) return;
-	if( m_pTarget->state() == QAbstractSocket::ConnectingState ) m_pTarget->waitForConnected();
-	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) return;
+	if( m_pTarget->state() == QAbstractSocket::ConnectingState ) m_pTarget->waitForConnected(300);
+	if( m_pTarget->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pTarget->write( data );
 	m_pTarget->waitForBytesWritten(100);
 }

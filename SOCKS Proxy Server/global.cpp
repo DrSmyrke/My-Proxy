@@ -90,6 +90,7 @@ namespace app {
 
 	void loadBlackList(const QString &fileName, std::vector<QString> &data)
 	{
+		app::setLog( 3, "LOAD BLACK ADDRS LIST..." );
 		data.clear();
 		QFile file;
 		file.setFileName( fileName );
@@ -111,6 +112,7 @@ namespace app {
 
 	void saveBlackList(const QString &fileName, const std::vector<QString> &data)
 	{
+		app::setLog( 3, "SAVE BLACK ADDRS LIST..." );
 		QFile file;
 		file.setFileName( fileName );
 		if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
@@ -124,6 +126,7 @@ namespace app {
 
 	void addGlobalBlackAddr(const QString &str)
 	{
+		app::setLog( 4, "SAVE BLACK ADDRS LIST..." );
 		bool find = false;
 
 		for( auto elem:app::blackList.nameAddrs ){

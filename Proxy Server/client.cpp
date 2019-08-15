@@ -325,8 +325,8 @@ void Client::sendNoAccess()
 
 void Client::sendToClient(const QByteArray &data)
 {
-	if( m_pClient->state() == QAbstractSocket::ConnectingState ) m_pClient->waitForConnected();
-	if( m_pClient->state() != QAbstractSocket::ConnectedState ) return;
+	if( m_pClient->state() == QAbstractSocket::ConnectingState ) m_pClient->waitForConnected(300);
+	if( m_pClient->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
 }
@@ -334,8 +334,8 @@ void Client::sendToClient(const QByteArray &data)
 void Client::sendToTarget(const QByteArray &data)
 {
 	if( data.size() == 0 ) return;
-	if( m_pTarget->state() == QAbstractSocket::ConnectingState ) m_pTarget->waitForConnected();
-	if( m_pTarget->state() != QAbstractSocket::ConnectedState ) return;
+	if( m_pTarget->state() == QAbstractSocket::ConnectingState ) m_pTarget->waitForConnected(300);
+	if( m_pTarget->state() == QAbstractSocket::UnconnectedState ) return;
 	if( m_proto == http::Proto::HTTPS ){
 		m_pTarget->write( data );
 	}
