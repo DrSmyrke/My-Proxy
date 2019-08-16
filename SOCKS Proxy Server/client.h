@@ -16,6 +16,16 @@ public:
 		uint16_t port;
 		uint32_t ip;
 		QHostAddress addr;
+		bool findAuthLP;
+		uint8_t numAuthMethods;
+		QByteArray rawRet;
+	};
+	struct Proto{
+		enum Version{
+			AUTH_LP		= 0x01,
+			SOCKS4		= 0x04,
+			SOCKS5		= 0x05,
+		};
 	};
 	explicit Client(qintptr descriptor, QObject *parent = 0);
 	void run() { slot_start(); }
@@ -31,8 +41,9 @@ private:
 	QTcpSocket* m_pClient;
 	QTcpSocket* m_pTarget;
 	bool m_tunnel;
+	bool m_auth;
 
-	void sendError();
+	void sendError(const uint8_t protoByte, const QString &errorString = QString(""), const uint8_t errorCode = 0x05, const uint8_t level = 4);
 	void log(const QString &text);
 	void sendToClient(const QByteArray &data);
 	void sendToTarget(const QByteArray &data);

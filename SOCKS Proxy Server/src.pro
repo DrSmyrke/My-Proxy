@@ -16,9 +16,11 @@ TEMPLATE = app
 SOURCES += main.cpp \
     server.cpp \
     client.cpp \
-    global.cpp
+    global.cpp \
+    myfunctions.cpp
 
 HEADERS += \
     server.h \
     client.h \
-    global.h
+    global.h \
+    myfunctions.h

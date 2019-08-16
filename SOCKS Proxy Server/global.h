@@ -28,12 +28,16 @@ struct Config{
 #ifdef __linux__
 	QString logFile						= "/var/log/socksproxy.log";
 	QString blackAddrsFile				= "/usr/share/MyProxy/blackAddrs.list";
+	QString socks4AccessFile			= "/usr/share/MyProxy/socks4Access.list";
 #elif _WIN32
 	QString logFile						= QDir::homePath() + "/MyProxy/socksproxy.log";
 	QString blackAddrsFile				= QDir::homePath() + "/MyProxy/blackAddrs.list";
+	QString socks4AccessFile			= QDir::homePath() + "/MyProxy/socks4Access.list";
 #endif
 	uint16_t port						= 7301;
 	bool saveSettings					= false;
+	std::vector<User> users;
+	QByteArray realmString				= "ProxyAuth";
 };
 
 struct BlackList{
@@ -42,9 +46,15 @@ struct BlackList{
 	bool addrsFileSave = false;
 };
 
+struct AccessLists{
+	std::vector<QHostAddress> socks4access;
+	bool socks4AccessFileFileSave = false;
+};
+
 namespace app {
 	extern Config conf;
 	extern BlackList blackList;
+	extern AccessLists accessLists;
 
 	void loadSettings();
 	void saveSettings();
@@ -55,6 +65,11 @@ namespace app {
 	void addGlobalBlackAddr(const QString &str);
 	void updateBlackIPAddrs();
 	bool findBlockAddr(const QHostAddress& addr);
+	void loadAccessFile(const QString &fileName, std::vector<QHostAddress> &data);
+	void saveAccessFile(const QString &fileName, std::vector<QHostAddress> &data);
+	bool addUser(const QString &login, const QString &pass, const uint8_t group = UserGrpup::users);
+	bool findUser(const QString &login);
+	bool isSocks4Access(const QHostAddress &addr);
 }
 
 #endif // GLOBAL_H

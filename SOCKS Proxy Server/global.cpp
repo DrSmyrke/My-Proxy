@@ -1,4 +1,5 @@
 #include "global.h"
+#include "myfunctions.h"
 
 #include <QDateTime>
 #include <QSettings>
@@ -7,6 +8,7 @@
 namespace app {
 	Config conf;
 	BlackList blackList;
+	AccessLists accessLists;
 
 	void loadSettings()
 	{
@@ -14,18 +16,22 @@ namespace app {
 
 		app::conf.port = settings.value("SOCKS PROXY/port",app::conf.port).toUInt();
 		app::conf.blackAddrsFile = settings.value("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile).toString();
+		app::conf.socks4AccessFile = settings.value("SOCKS PROXY/socks4AccessFile",app::conf.socks4AccessFile).toString();
 		app::conf.logFile = settings.value("SOCKS PROXY/logFile",app::conf.logFile).toString();
 		app::conf.logLevel = settings.value("SOCKS PROXY/logLevel",app::conf.logLevel).toUInt();
 
+#ifdef __linux__
+
+#elif _WIN32
+	QDir dir(QDir::homePath());
+	dir.mkdir("MyProxy");
+#endif
 
 		app::loadBlackList( app::conf.blackAddrsFile, app::blackList.nameAddrs );
 
-		#ifdef __linux__
+		app::loadAccessFile( app::conf.socks4AccessFile, app::accessLists.socks4access );
 
-		#elif _WIN32
-			QDir dir(QDir::homePath());
-			dir.mkdir("MyProxy");
-		#endif
+		app::updateBlackIPAddrs();
 	}
 
 	void saveSettings()
@@ -35,6 +41,7 @@ namespace app {
 			settings.clear();
 			settings.setValue("SOCKS PROXY/port",app::conf.port);
 			settings.setValue("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile);
+			settings.setValue("SOCKS PROXY/socks4AccessFile",app::conf.socks4AccessFile);
 			settings.setValue("SOCKS PROXY/logFile",app::conf.logFile);
 			settings.setValue("SOCKS PROXY/logLevel",app::conf.logLevel);
 
@@ -43,6 +50,11 @@ namespace app {
 		if( app::blackList.addrsFileSave ){
 			app::saveBlackList( app::conf.blackAddrsFile, app::blackList.nameAddrs );
 			app::blackList.addrsFileSave = false;
+		}
+
+		if( app::accessLists.socks4AccessFileFileSave ){
+			app::saveAccessFile( app::conf.socks4AccessFile, app::accessLists.socks4access );
+			app::accessLists.socks4AccessFileFileSave = false;
 		}
 	}
 
@@ -150,11 +162,11 @@ namespace app {
 
 		for( auto addr:app::blackList.nameAddrs ){
 			auto info = QHostInfo::fromName( addr );
-			app::setLog( 3, QString("GET INFO for [%1]").arg(addr) );
+			app::setLog( 4, QString("GET INFO for [%1]").arg(addr) );
 			if( info.error() == QHostInfo::NoError ){
 				for(auto elem:info.addresses()){
 					app::blackList.ipAddrs.push_back( elem );
-					app::setLog( 3, QString("SET IP [%1]").arg(elem.toString()) );
+					app::setLog( 5, QString("SET IP [%1]").arg(elem.toString()) );
 				}
 			}
 		}
@@ -166,6 +178,89 @@ namespace app {
 
 		for( auto elem:app::blackList.ipAddrs ){
 			if( elem == addr ){
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	void loadAccessFile(const QString &fileName, std::vector<QHostAddress> &data)
+	{
+		app::setLog( 3, QString("LOAD ACCESS LIST... [%1]").arg(fileName) );
+
+		data.clear();
+
+		QFile file;
+		file.setFileName( fileName );
+		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
+			QByteArray str;
+			char sym;
+			while(!file.atEnd()){
+				file.read( &sym, 1 );
+				if( sym == '\n' ){
+					QHostAddress addr;
+					if( addr.setAddress( QString(str) ) ) data.push_back( addr );
+					str.clear();
+					continue;
+				}
+				str.append( sym );
+			}
+			file.close();
+		}
+	}
+
+	void saveAccessFile(const QString &fileName, std::vector<QHostAddress> &data)
+	{
+		app::setLog( 3, QString("SAVE ACCESS LIST... [%1]").arg(fileName) );
+		QFile file;
+		file.setFileName( fileName );
+		if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
+			for( auto elem:data ){
+				file.write( elem.toString().toUtf8() );
+				file.write( "\n" );
+			}
+			file.close();
+		}
+	}
+
+	bool addUser(const QString &login, const QString &pass, const uint8_t group)
+	{
+		bool res = false;
+
+		if( !findUser( login ) ){
+			User user;
+			user.login = login;
+			user.pass = mf::md5( app::conf.realmString + ":->" + pass.toUtf8() ).toHex();
+			user.group = group;
+			app::conf.users.push_back( user );
+			res = true;
+		}
+
+		return res;
+	}
+
+	bool findUser(const QString &login)
+	{
+		bool res = false;
+
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	bool isSocks4Access(const QHostAddress &addr)
+	{
+		bool res = false;
+
+		for( auto accessAddr:app::accessLists.socks4access ){
+			if( addr == accessAddr ){
 				res = true;
 				break;
 			}
