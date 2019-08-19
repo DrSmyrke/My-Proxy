@@ -3,6 +3,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QDataStream>
+#include <QHostInfo>
 
 Client::Client(qintptr descriptor, QObject *parent)
 	: QObject(parent)
@@ -54,7 +55,7 @@ void Client::slot_clientReadyRead()
 		}
 	}
 
-	app::setLog(3,QString("Client::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
+	app::setLog(5,QString("Client::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
 
 	// Если данные уже отправили выходим
 	if( buff.size() == 0 ) return;
@@ -79,58 +80,66 @@ void Client::slot_clientReadyRead()
 			}
 		break;
 		case Client::Proto::Version::AUTH_LP:
+			if( !parsAuthPkt( buff ) ){
+				sendError( Client::Proto::Version::SOCKS5, "Packet is not correct" );
+				return;
+			}
+			if( !m_auth ) app::addBAN( m_pClient->peerAddress() );
 			pkt.rawRet.clear();
 			pkt.rawRet[0] = Client::Proto::Version::AUTH_LP;
-			pkt.rawRet[1] = 0x00;
+			pkt.rawRet[1] = ( m_auth ) ? 0x00 : 0x01;
 			sendToClient( pkt.rawRet );
 			return;
 		break;
 		case Client::Proto::Version::SOCKS5:
-			//пакет не полный
-			if( buff.size() < 2 ){
-				sendError( pkt.version, "Packet is not full" );
+			// is BAN ?
+			if( app::isBan( m_pClient->peerAddress() ) ){
+				sendError( pkt.version, QString("IP is BAN"), 0x05, 2 );
 				return;
-			}
-			pkt.numAuthMethods = buff[1];
-			//пакет не корректный
-			if( pkt.numAuthMethods < 1 ){
-				sendError( pkt.version, "Packet is not correct" );
-				return;
-			}
-			if( buff.size() < (pkt.numAuthMethods + 2) ){
-				sendError( pkt.version, "Packet is not full" );
-				return;
-			}
-			pkt.findAuthLP = false;
-			for( uint8_t i = 0; i < pkt.numAuthMethods; i++ ){
-				if( buff.at(i+2) == 0x02 ){
-					pkt.findAuthLP = true;
-					break;
-				}
 			}
 
 			pkt.rawRet.clear();
 			pkt.rawRet[0] = Client::Proto::Version::SOCKS5;
 
-			if( !pkt.findAuthLP ){
-				pkt.rawRet[1] = 0xFF;
+			if( !m_auth ){
+				if( !parsAuthMethods( buff ) ){
+					pkt.rawRet[1] = 0xFF;
+				}else{
+					pkt.rawRet[1] = 0x02;
+				}
+				sendToClient( pkt.rawRet );
+				return;
 			}else{
-				pkt.rawRet[1] = 0x02;
+				if( !parsConnectPkt( buff, pkt.addr, pkt.port, pkt.domainAddr ) ){
+					sendError( pkt.version, QString("Pkt is not correct") );
+					return;
+				}
 			}
-
-			sendToClient( pkt.rawRet );
-			//slot_stop();
-			return;
 		break;
-		default: break;
+		default: return;
 	}
 
 
-	app::setLog(4,QString("Client::slot_clientReadyRead request connect [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.ip).toString()).arg(pkt.port));
+	app::setLog(4,QString("Client::slot_clientReadyRead request connect [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.addr).toString()).arg(pkt.port));
 
+	if( m_auth ){
+		bool isBlockIP = app::isBlockedUserList( m_user.login, pkt.addr.toString() );
+		bool isAccessIP = app::isAccessUserList( m_user.login, pkt.addr.toString() );
+		bool isBlockAddr = app::isBlockedUserList( m_user.login, pkt.domainAddr );
+		bool isAccessAddr = app::isAccessUserList( m_user.login, pkt.domainAddr );
+		if( (isBlockIP && !isAccessIP && !isAccessAddr) ){
+			app::setLog(4,QString("Client::slot_clientReadyRead findUserBlockIP [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.addr.toString()).arg(pkt.port));
+			sendError( pkt.version, "address is blocked" );
+			return;
+		}
+		if( (isBlockAddr && !isAccessIP && !isAccessAddr) ){
+			app::setLog(4,QString("Client::slot_clientReadyRead findUserBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.domainAddr).arg(pkt.port));
+			sendError( pkt.version, "address is blocked" );
+			return;
+		}
+	}
 
-
-	if( app::findBlockAddr( pkt.addr ) ){
+	if( app::isBlockAddr( pkt.addr ) ){
 		app::setLog(4,QString("Client::slot_clientReadyRead findBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.ip).toString()).arg(pkt.port));
 		sendError( pkt.version, "address is blocked" );
 		return;
@@ -141,25 +150,29 @@ void Client::slot_clientReadyRead()
 		sendError( pkt.version, "loadSettings" );
 		return;
 	}
-	if( pkt.addr.toString() == "0.0.0.0" && pkt.port == 20000 ){
-		app::saveSettings();
-		sendError( pkt.version, "saveSettings" );
-		return;
-	}
 
 	m_pTarget->connectToHost( pkt.addr, pkt.port);
 	m_pTarget->waitForConnected(3000);
 	if( m_pTarget->isOpen() ){
-		QByteArray ret;
-		ret[0]=0x00;
-		ret[1]=0x5a;
-		ret[2]=0x00;
-		ret[3]=0x00;
-		ret[4]=0x00;
-		ret[5]=0x00;
-		ret[6]=0x00;
-		ret[7]=0x00;
-		m_pClient->write(ret,ret.size());
+		pkt.rawRet.clear();
+		switch( pkt.version ){
+			case Client::Proto::Version::SOCKS4:
+				pkt.rawRet[0] = 0x00;
+				pkt.rawRet[1] = 0x5a;
+				pkt.rawRet[2] = 0x00;
+				pkt.rawRet[3] = 0x00;
+				pkt.rawRet[4] = 0x00;
+				pkt.rawRet[5] = 0x00;
+				pkt.rawRet[6] = 0x00;
+				pkt.rawRet[7] = 0x00;
+			break;
+			case Client::Proto::Version::SOCKS5:
+				pkt.rawRet = buff;
+				pkt.rawRet[0] = Client::Proto::Version::SOCKS5;
+				pkt.rawRet[1] = 0x00;
+			break;
+		}
+		sendToClient( pkt.rawRet );
 		m_tunnel = true;
 		return;
 	}else{
@@ -220,7 +233,7 @@ void Client::sendToClient(const QByteArray &data)
 	if( m_pClient->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
-	app::setLog(3,QString("Client::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data.toHex())));
+	app::setLog(5,QString("Client::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data.toHex())));
 }
 
 void Client::sendToTarget(const QByteArray &data)
@@ -230,4 +243,132 @@ void Client::sendToTarget(const QByteArray &data)
 	if( m_pTarget->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pTarget->write( data );
 	m_pTarget->waitForBytesWritten(100);
+}
+
+bool Client::parsAuthPkt(QByteArray &data)
+{
+	bool res = false;
+	uint8_t loginLen;
+	uint8_t passLen;
+	QByteArray login;
+	QByteArray pass;
+
+	//пакет не полный
+	if( data.size() < 2 ) return res;
+	loginLen = data[1];
+	if( data.size() < (loginLen + 2) ) return res;
+	login = data.mid( 2, loginLen );
+	data.remove( 0, (loginLen + 2) );
+	if( data.size() < 1 ) return res;
+	passLen = data[0];
+	if( data.size() < (passLen + 1) ) return res;
+	pass = data.mid( 1, loginLen );
+	res = app::chkAuth( login, pass );
+
+	if( res ){
+		m_user = app::getUserData( login );
+		m_auth = true;
+		app::setLog(4,QString("Client::parsAuthPkt() auth success [%1]").arg(QString(login)));
+	}
+
+	return res;
+}
+
+bool Client::parsAuthMethods(QByteArray &data)
+{
+	bool res = false;
+
+	//пакет не полный
+	if( data.size() < 2 ) return res;
+	uint8_t numAuthMethods = data[1];
+	//пакет не корректный
+	if( numAuthMethods < 1 ) return res;
+	if( data.size() < (numAuthMethods + 2) ) return res;
+	// поиск метода авторизации 0x02 (login/password)
+	for( uint8_t i = 0; i < numAuthMethods; i++ ){
+		if( data.at(i+2) == 0x02 ){
+			res = true;
+			break;
+		}
+	}
+
+	return res;
+}
+
+bool Client::parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port, QString &domainAddr)
+{
+	bool res = false;
+
+	//пакет не полный
+	if( data.size() < 5 ) return res;
+
+	uint8_t typeAddr = data[3];
+	QByteArray ip;
+	QByteArray portBA;
+	uint8_t nameLen = 0;
+	QHostInfo info;
+
+	switch( typeAddr ){
+		case 0x01:	//IPv4
+			//пакет не полный
+			if( data.size() < 10 ) return res;
+			ip = data.mid( 4, 4 );
+			portBA = data.mid( 8, 2 );
+			parsIP( ip, addr );
+			parsPORT( portBA, port );
+			res = true;
+		break;
+		case 0x03:	//domain name
+			nameLen = data[4];
+			if( data.size() < (7 + nameLen) ) return res;
+			ip = data.mid( 5, nameLen );
+			domainAddr = QString(ip);
+			info = QHostInfo::fromName( domainAddr );
+			if( info.error() == QHostInfo::NoError && !app::isBlockedDomName( domainAddr ) ){
+				for(auto elem:info.addresses()){
+					if( !app::isBlockAddr( elem ) ){
+						addr = elem;
+						break;
+					}
+				}
+			}else{
+				return res;
+			}
+			portBA = data.mid( (5 + nameLen), 2 );
+			parsPORT( portBA, port );
+			res = true;
+		break;
+		case 0x04:	//IPv6
+			//пакет не полный
+			if( data.size() < 22 ) return res;
+			ip = data.mid( 4, 16 );
+			portBA = data.mid( 20, 2 );
+			parsIP( ip, addr );
+			parsPORT( portBA, port );
+			res = true;
+		break;
+	}
+
+	return res;
+
+}
+
+void Client::parsIP(QByteArray &data, QHostAddress &addr)
+{
+	if( data.size() == 16 ) addr.setAddress( (unsigned)data.data() );
+
+	uint32_t ip;
+
+	QDataStream stream(&data, QIODevice::ReadWrite);
+	stream.setByteOrder(QDataStream::BigEndian);
+	stream >> ip;
+
+	addr.setAddress( ip );
+}
+
+void Client::parsPORT(QByteArray &data, uint16_t &port)
+{
+	QDataStream stream(&data, QIODevice::ReadWrite);
+	stream.setByteOrder(QDataStream::BigEndian);
+	stream >> port;
 }

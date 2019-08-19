@@ -5,6 +5,7 @@
 #include <QtNetwork/QTcpServer>
 #include <QTcpSocket>
 #include <QFile>
+#include <QTimer>
 #include "client.h"
 
 #include "global.h"
@@ -21,8 +22,11 @@ protected:
 	void incomingConnection(qintptr socketDescriptor);
 signals:
 	void signal_stopAll();
+private slots:
+	void slot_timer();
 private:
 	QFile m_accessFile;
+	QTimer* m_pTimer;
 };
 
 #endif // SERVER_H

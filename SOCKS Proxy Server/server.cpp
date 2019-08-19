@@ -3,6 +3,11 @@
 Server::Server(QObject *parent)	: QTcpServer(parent)
 {
 	app::setLog( 0, "SERVER CREATING..." );
+
+	m_pTimer = new QTimer(this);
+		m_pTimer->setInterval( 1000 );
+
+	connect( m_pTimer, &QTimer::timeout, this, &Server::slot_timer );
 }
 
 Server::~Server()
@@ -19,6 +24,7 @@ bool Server::run()
 	}
 
 	app::setLog( 0, QString("SERVER [ ACTIVATED ] PORT: [%1]").arg(app::conf.port) );
+	m_pTimer->start();
 
 	return true;
 }
@@ -26,6 +32,7 @@ bool Server::run()
 void Server::stop()
 {
 	app::setLog( 0, "SERVER STOPPING..." );
+	if( m_pTimer->isActive() ) m_pTimer->stop();
 	app::saveSettings();
 	this->close();
 }
@@ -42,4 +49,24 @@ void Server::incomingConnection(qintptr socketDescriptor)
 //	connect(thread,&QThread::finished,thread,&QThread::deleteLater);
 //	thread->start();
 	client->run();
+}
+
+void Server::slot_timer()
+{
+	//проверка бан листа
+	while( app::blackList.BANipAddrsLock );
+	app::blackList.BANipAddrsLock = true;
+
+	for( auto it = app::blackList.BANipAddrs.begin(); it != app::blackList.BANipAddrs.end(); it++ ){
+		if( (*it).second > 0 ){
+			(*it).second--;
+		}else{
+			app::blackList.BANipAddrs.erase( it );
+		}
+	}
+
+	app::blackList.BANipAddrsLock = false;
+
+	// сохранение настроек
+	app::saveSettings();
 }

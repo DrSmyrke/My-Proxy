@@ -17,6 +17,7 @@ namespace app {
 		app::conf.port = settings.value("SOCKS PROXY/port",app::conf.port).toUInt();
 		app::conf.blackAddrsFile = settings.value("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile).toString();
 		app::conf.socks4AccessFile = settings.value("SOCKS PROXY/socks4AccessFile",app::conf.socks4AccessFile).toString();
+		app::conf.usersFile = settings.value("SOCKS PROXY/usersFile",app::conf.usersFile).toString();
 		app::conf.logFile = settings.value("SOCKS PROXY/logFile",app::conf.logFile).toString();
 		app::conf.logLevel = settings.value("SOCKS PROXY/logLevel",app::conf.logLevel).toUInt();
 
@@ -32,6 +33,8 @@ namespace app {
 		app::loadAccessFile( app::conf.socks4AccessFile, app::accessLists.socks4access );
 
 		app::updateBlackIPAddrs();
+
+		app::loadUsers();
 	}
 
 	void saveSettings()
@@ -42,6 +45,7 @@ namespace app {
 			settings.setValue("SOCKS PROXY/port",app::conf.port);
 			settings.setValue("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile);
 			settings.setValue("SOCKS PROXY/socks4AccessFile",app::conf.socks4AccessFile);
+			settings.setValue("SOCKS PROXY/usersFile",app::conf.usersFile);
 			settings.setValue("SOCKS PROXY/logFile",app::conf.logFile);
 			settings.setValue("SOCKS PROXY/logLevel",app::conf.logLevel);
 
@@ -55,6 +59,11 @@ namespace app {
 		if( app::accessLists.socks4AccessFileFileSave ){
 			app::saveAccessFile( app::conf.socks4AccessFile, app::accessLists.socks4access );
 			app::accessLists.socks4AccessFileFileSave = false;
+		}
+
+		if( app::conf.saveUsers ){
+			app::saveUsers();
+			app::conf.saveUsers = false;
 		}
 	}
 
@@ -172,7 +181,7 @@ namespace app {
 		}
 	}
 
-	bool findBlockAddr(const QHostAddress& addr)
+	bool isBlockAddr(const QHostAddress& addr)
 	{
 		bool res = false;
 
@@ -235,6 +244,7 @@ namespace app {
 			user.pass = mf::md5( app::conf.realmString + ":->" + pass.toUtf8() ).toHex();
 			user.group = group;
 			app::conf.users.push_back( user );
+			app::conf.saveUsers = true;
 			res = true;
 		}
 
@@ -261,6 +271,184 @@ namespace app {
 
 		for( auto accessAddr:app::accessLists.socks4access ){
 			if( addr == accessAddr ){
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	bool chkAuth(const QString &login, const QString &pass)
+	{
+		bool res = false;
+
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				auto newPass = mf::md5( app::conf.realmString + ":->" + pass.toUtf8() ).toHex();
+				if( newPass == user.pass ) res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	User getUserData(const QString &login)
+	{
+		User data;
+
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				data = user;
+				break;
+			}
+		}
+
+		return data;
+	}
+
+	bool isBan(const QHostAddress &addr)
+	{
+		bool res = false;
+
+		while( app::blackList.BANipAddrsLock );
+		app::blackList.BANipAddrsLock = true;
+		for( auto elem:app::blackList.BANipAddrs ){
+			if( addr == elem.first ){
+				res = true;
+				break;
+			}
+		}
+		app::blackList.BANipAddrsLock = false;
+
+		return res;
+	}
+
+	void addBAN(const QHostAddress &addr)
+	{
+		uint8_t timeout = 30;
+
+		while( app::blackList.BANipAddrsLock );
+		if( !isBan( addr ) ){
+
+			std::pair<QHostAddress,uint32_t> data;
+			data.first = addr;
+			data.second = timeout;
+
+			app::blackList.BANipAddrs.push_back( data );
+			return;
+		}
+
+		app::blackList.BANipAddrsLock = true;
+
+		for( auto &elem:app::blackList.BANipAddrs ){
+			if( addr == elem.first ){
+				elem.second += 30;
+				break;
+			}
+		}
+		app::blackList.BANipAddrsLock = false;
+	}
+
+	bool isBlockedDomName(const QString &domName)
+	{
+		bool res = false;
+
+		for( auto elem:app::blackList.nameAddrs ){
+			if( mf::strFind( elem, domName ) ){
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	void loadUsers()
+	{
+		app::setLog( 3, "LOAD USRESR..." );
+		app::conf.users.clear();
+		QFile file;
+		file.setFileName( app::conf.usersFile );
+		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
+			QByteArray str;
+			char sym;
+			while(!file.atEnd()){
+				file.read( &sym, 1 );
+				if( sym == '\n' ){
+					auto tmp = str.split('	');
+					if( tmp.size() >= 2 ){
+						User user;
+						user.login		= tmp[0];
+						user.pass		= tmp[1];
+						if( tmp.size() >= 3 ) user.maxConnections = tmp[2].toHex().toUInt(nullptr,16);
+						if( tmp.size() >= 4 ){
+							for( auto elem:tmp[3].split(',') ) user.accessList.push_back( elem );
+						}
+						if( tmp.size() >= 5 ){
+							for( auto elem:tmp[4].split(',') ) user.blockList.push_back( elem );
+						}
+						app::conf.users.push_back( user );
+					}
+					str.clear();
+					continue;
+				}
+				str.append( sym );
+			}
+			file.close();
+		}
+	}
+
+	void saveUsers()
+	{
+		app::setLog( 3, "SAVE USRESR..." );
+		QFile file;
+		file.setFileName( app::conf.usersFile );
+		if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
+			for( auto elem:app::conf.users ){
+				QByteArray data;
+				data.append( elem.login );
+				data.append( "	" );
+				data.append( elem.pass );
+				data.append( "	" );
+				data.append( QString::number(elem.maxConnections) );
+				if( elem.accessList.size() > 0 ){
+					data.append( "	" );
+					data.append( elem.accessList.join(",") );
+				}
+				if( elem.blockList.size() > 0 ){
+					data.append( "	" );
+					data.append( elem.blockList.join(",") );
+				}
+
+				file.write( data );
+				file.write( "\n" );
+			}
+			file.close();
+		}
+	}
+
+	bool isBlockedUserList(const QString &login, const QString &addr)
+	{
+		bool res = false;
+
+		for( auto elem:app::getUserData( login ).blockList ){
+			if( mf::strFind( elem, addr ) ){
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	bool isAccessUserList(const QString &login, const QString &addr)
+	{
+		bool res = false;
+
+		for( auto elem:app::getUserData( login ).accessList ){
+			if( mf::strFind( elem, addr ) ){
 				res = true;
 				break;
 			}
