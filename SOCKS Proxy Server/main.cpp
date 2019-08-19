@@ -14,8 +14,6 @@ int main(int argc, char *argv[])
 	//TODO:remove
 	//app::conf.socksClients.push_back( "192.168.1.250" );
 	//app::conf.socksClients.push_back( "127.0.0.1" );
-	app::addUser( "drsmyrke", "140390", UserGrpup::admins );
-	app::addUser( "vlads", "88005553535" );
 
 	//Server* server = new Server();
 	//server->run();

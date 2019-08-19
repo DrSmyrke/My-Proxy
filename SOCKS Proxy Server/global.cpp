@@ -12,7 +12,9 @@ namespace app {
 
 	void loadSettings()
 	{
-		QSettings settings("MySoft","MyProxy");
+		if( app::conf.confFile.isEmpty() ) return;
+
+		QSettings settings(app::conf.confFile, QSettings::IniFormat);
 
 		app::conf.port = settings.value("SOCKS PROXY/port",app::conf.port).toUInt();
 		app::conf.blackAddrsFile = settings.value("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile).toString();
@@ -35,12 +37,16 @@ namespace app {
 		app::updateBlackIPAddrs();
 
 		app::loadUsers();
+
+		if( settings.allKeys().size() == 0 ) app::saveSettings();
 	}
 
 	void saveSettings()
 	{
+		if( app::conf.confFile.isEmpty() ) return;
+
 		if( app::conf.saveSettings ){
-			QSettings settings("MySoft","MyProxy");
+			QSettings settings(app::conf.confFile, QSettings::IniFormat);
 			settings.clear();
 			settings.setValue("SOCKS PROXY/port",app::conf.port);
 			settings.setValue("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile);
@@ -367,7 +373,7 @@ namespace app {
 
 	void loadUsers()
 	{
-		app::setLog( 3, "LOAD USRESR..." );
+		app::setLog( 3, "LOAD USERS..." );
 		app::conf.users.clear();
 		QFile file;
 		file.setFileName( app::conf.usersFile );
@@ -402,7 +408,7 @@ namespace app {
 
 	void saveUsers()
 	{
-		app::setLog( 3, "SAVE USRESR..." );
+		app::setLog( 3, "SAVE USERS..." );
 		QFile file;
 		file.setFileName( app::conf.usersFile );
 		if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
