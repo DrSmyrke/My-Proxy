@@ -355,7 +355,7 @@ bool Client::parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port
 
 void Client::parsIP(QByteArray &data, QHostAddress &addr)
 {
-	if( data.size() == 16 ) addr.setAddress( (unsigned)data.data() );
+	if( data.size() == 16 ) addr.setAddress( (uint8_t*)data.data() );
 
 	uint32_t ip;
 
