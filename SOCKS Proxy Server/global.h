@@ -28,11 +28,11 @@ struct Config{
 	bool verbose						= false;
 	uint8_t logLevel					= 3;
 #ifdef __linux__
-	QString confFile					= "/usr/share/MyProxy/config.ini";
+	QString confFile					= "/etc/DrSmyrke/MyProxy/config.ini";
 	QString logFile						= "/var/log/socksproxy.log";
-	QString blackAddrsFile				= "/usr/share/MyProxy/blackAddrs.list";
-	QString socks4AccessFile			= "/usr/share/MyProxy/socks4Access.list";
-	QString usersFile					= "/usr/share/MyProxy/usersFile.list";
+	QString blackAddrsFile				= "/etc/DrSmyrke/MyProxy/blackAddrs.list";
+	QString socks4AccessFile			= "/etc/DrSmyrke/MyProxy/socks4Access.list";
+	QString usersFile					= "/etc/DrSmyrke/MyProxy/usersFile.list";
 #elif _WIN32
 	QString confFile					= QDir::homePath() + "/MyProxy/config.ini";
 	QString logFile						= QDir::homePath() + "/MyProxy/socksproxy.log";
