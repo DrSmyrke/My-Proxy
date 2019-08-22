@@ -101,7 +101,9 @@ namespace mf {
 			findStr.remove( findStr.length() - 1, 1 );
 			if( dataStr.indexOf( findStr, Qt::CaseInsensitive ) == 0 ) ret = true;
 		}
-		if( inStr.left(1) != "*" && inStr.right(1) != "*" ){ if( dataStr == inStr ) ret = true; }
+		if( inStr.left(1) != "*" && inStr.right(1) != "*" ){
+			if( dataStr == inStr ) ret = true;
+		}
 
 		return ret;
 	}

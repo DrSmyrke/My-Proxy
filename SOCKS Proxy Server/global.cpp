@@ -14,14 +14,17 @@ namespace app {
 	{
 		if( app::conf.confFile.isEmpty() ) return;
 
+		app::setLog( 3, QString("LOAD SETTINGS [%1]...").arg(app::conf.confFile) );
+
 		QSettings settings(app::conf.confFile, QSettings::IniFormat);
 
-		app::conf.port = settings.value("SOCKS PROXY/port",app::conf.port).toUInt();
-		app::conf.blackAddrsFile = settings.value("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile).toString();
-		app::conf.socks4AccessFile = settings.value("SOCKS PROXY/socks4AccessFile",app::conf.socks4AccessFile).toString();
-		app::conf.usersFile = settings.value("SOCKS PROXY/usersFile",app::conf.usersFile).toString();
-		app::conf.logFile = settings.value("SOCKS PROXY/logFile",app::conf.logFile).toString();
-		app::conf.logLevel = settings.value("SOCKS PROXY/logLevel",app::conf.logLevel).toUInt();
+		app::conf.port = settings.value("SOCKS_PROXY/port",app::conf.port).toUInt();
+		app::conf.blackAddrsFile = settings.value("SOCKS_PROXY/blackAddrsFile",app::conf.blackAddrsFile).toString();
+		app::conf.socks4AccessFile = settings.value("SOCKS_PROXY/socks4AccessFile",app::conf.socks4AccessFile).toString();
+		app::conf.usersFile = settings.value("SOCKS_PROXY/usersFile",app::conf.usersFile).toString();
+		app::conf.logFile = settings.value("SOCKS_PROXY/logFile",app::conf.logFile).toString();
+		app::conf.logLevel = settings.value("SOCKS_PROXY/logLevel",app::conf.logLevel).toUInt();
+		app::conf.verbose = settings.value("SOCKS_PROXY/verbose",app::conf.verbose).toBool();
 
 #ifdef __linux__
 
@@ -38,7 +41,10 @@ namespace app {
 
 		app::loadUsers();
 
-		if( settings.allKeys().size() == 0 ) app::saveSettings();
+		if( settings.allKeys().size() == 0 ){
+			app::conf.saveSettings = true;
+			app::saveSettings();
+		}
 	}
 
 	void saveSettings()
@@ -46,14 +52,16 @@ namespace app {
 		if( app::conf.confFile.isEmpty() ) return;
 
 		if( app::conf.saveSettings ){
+			app::setLog( 3, QString("SAVE SETTINGS [%1]...").arg(app::conf.confFile) );
 			QSettings settings(app::conf.confFile, QSettings::IniFormat);
 			settings.clear();
-			settings.setValue("SOCKS PROXY/port",app::conf.port);
-			settings.setValue("SOCKS PROXY/blackAddrsFile",app::conf.blackAddrsFile);
-			settings.setValue("SOCKS PROXY/socks4AccessFile",app::conf.socks4AccessFile);
-			settings.setValue("SOCKS PROXY/usersFile",app::conf.usersFile);
-			settings.setValue("SOCKS PROXY/logFile",app::conf.logFile);
-			settings.setValue("SOCKS PROXY/logLevel",app::conf.logLevel);
+			settings.setValue("SOCKS_PROXY/port",app::conf.port);
+			settings.setValue("SOCKS_PROXY/blackAddrsFile",app::conf.blackAddrsFile);
+			settings.setValue("SOCKS_PROXY/socks4AccessFile",app::conf.socks4AccessFile);
+			settings.setValue("SOCKS_PROXY/usersFile",app::conf.usersFile);
+			settings.setValue("SOCKS_PROXY/logFile",app::conf.logFile);
+			settings.setValue("SOCKS_PROXY/logLevel",app::conf.logLevel);
+			settings.setValue("SOCKS_PROXY/verbose",app::conf.verbose);
 
 			app::conf.saveSettings = false;
 		}
@@ -390,10 +398,18 @@ namespace app {
 						user.pass		= tmp[1];
 						if( tmp.size() >= 3 ) user.maxConnections = tmp[2].toHex().toUInt(nullptr,16);
 						if( tmp.size() >= 4 ){
-							for( auto elem:tmp[3].split(',') ) user.accessList.push_back( elem );
+							app::setLog( 3, "LOAD ACCESS LIST..." );
+							for( auto elem:tmp[3].split(',') ){
+								app::setLog( 3, QString("	[%1]").arg(QString(elem)) );
+								user.accessList.push_back( elem );
+							}
 						}
 						if( tmp.size() >= 5 ){
-							for( auto elem:tmp[4].split(',') ) user.blockList.push_back( elem );
+							app::setLog( 3, "LOAD BLACK LIST..." );
+							for( auto elem:tmp[4].split(',') ){
+								app::setLog( 3, QString("	[%1]").arg(QString(elem)) );
+								user.blockList.push_back( elem );
+							}
 						}
 						app::conf.users.push_back( user );
 					}
