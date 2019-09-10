@@ -479,4 +479,24 @@ namespace app {
 		return res;
 	}
 
+	void changeUserConnection(const QString &login, const int connCount)
+	{
+		if( connCount == 0 ){
+			app::conf.usersConnections[login] = 0;
+		}else{
+			app::conf.usersConnections[login] += connCount;
+			if( app::conf.usersConnections[login] < 0 ) app::conf.usersConnections[login] = 0;
+		}
+	}
+
+	uint32_t getUserConnectionsNum(const QString &login)
+	{
+		uint32_t num = 0;
+
+		auto iter = app::conf.usersConnections.find( login );
+		if( iter != app::conf.usersConnections.end() ) num = (*iter);
+
+		return num;
+	}
+
 }

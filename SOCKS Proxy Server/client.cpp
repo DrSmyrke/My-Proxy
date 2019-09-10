@@ -38,6 +38,9 @@ void Client::slot_stop()
 {
 	if( m_pTarget->isOpen() ) m_pTarget->close();
 	if( m_pClient->isOpen() ) m_pClient->close();
+
+	if( m_auth ) app::changeUserConnection( m_user.login, -1 );
+
 	emit signal_finished();
 }
 
@@ -84,7 +87,14 @@ void Client::slot_clientReadyRead()
 				sendError( Client::Proto::Version::SOCKS5, "Packet is not correct" );
 				return;
 			}
-			if( !m_auth ) app::addBAN( m_pClient->peerAddress() );
+
+			if( getUserConnectionsNum( m_user.login ) < m_user.maxConnections ){
+				app::changeUserConnection( m_user.login, 1 );
+			}else{
+				m_auth = false;
+				app::setLog(4,QString("Client::parsAuthPkt() limit connections [%1]").arg(QString( m_user.login )));
+			}
+
 			pkt.rawRet.clear();
 			pkt.rawRet[0] = Client::Proto::Version::AUTH_LP;
 			pkt.rawRet[1] = ( m_auth ) ? 0x00 : 0x01;
@@ -269,6 +279,9 @@ bool Client::parsAuthPkt(QByteArray &data)
 		m_user = app::getUserData( login );
 		m_auth = true;
 		app::setLog(4,QString("Client::parsAuthPkt() auth success [%1]").arg(QString(login)));
+	}else{
+		app::addBAN( m_pClient->peerAddress() );
+		app::setLog(3,QString("Client::parsAuthPkt() auth error [%1:%2]").arg(QString(login)).arg(QString(pass)));
 	}
 
 	return res;

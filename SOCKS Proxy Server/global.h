@@ -18,7 +18,6 @@ struct User{
 	QString pass;
 	uint8_t group = UserGrpup::users;
 	uint32_t lastLoginTimestamp = 0;
-	uint32_t connections = 0;
 	uint32_t maxConnections = 37;
 	QStringList accessList;
 	QStringList blockList;
@@ -44,6 +43,7 @@ struct Config{
 	bool saveSettings					= false;
 	bool saveUsers						= false;
 	std::vector<User> users;
+	std::map<QString,uint32_t> usersConnections;
 	QByteArray realmString				= "ProxyAuth";
 };
 
@@ -88,6 +88,8 @@ namespace app {
 	void saveUsers();
 	bool isBlockedUserList(const QString &login, const QString &addr);
 	bool isAccessUserList(const QString &login, const QString &addr);
+	void changeUserConnection(const QString &login, const int connCount);
+	uint32_t getUserConnectionsNum(const QString &login);
 }
 
 #endif // GLOBAL_H
