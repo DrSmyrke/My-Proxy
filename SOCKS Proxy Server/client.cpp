@@ -73,10 +73,12 @@ void Client::slot_clientReadyRead()
 	switch( pkt.version ){
 		// Добавление протокола конфигурации и отладки
 		case Client::Proto::Version::CONFIGURE:
-			// Приняли данные, распарсили и закрыли соединение!!!
-			stream >> pkt.cmd;
-			parsAdminPkt( pkt.cmd, pkt.rawRet );
-			sendToClient( pkt.rawRet );
+			// Приняли данные, распарсили и закрыли соединение!!! (Только для локалхоста)
+			if( m_pClient->peerAddress().toString() == "127.0.0.1" ){
+				stream >> pkt.cmd;
+				parsAdminPkt( pkt.cmd, pkt.rawRet );
+				sendToClient( pkt.rawRet );
+			}
 			slot_stop();
 		break;
 		case Client::Proto::Version::SOCKS4:
