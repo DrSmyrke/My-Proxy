@@ -25,7 +25,6 @@ signals:
 private slots:
 	void slot_timer();
 private:
-	QFile m_accessFile;
 	QTimer* m_pTimer;
 };
 

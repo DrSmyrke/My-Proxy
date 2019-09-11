@@ -117,10 +117,12 @@ namespace app {
 		}
 
 		if( app::conf.logFile.isEmpty() ) return;
-		FILE* f;
-		f = fopen(app::conf.logFile.toUtf8().data(),"a+");
-		fwrite(str.toUtf8().data(),static_cast<size_t>(str.length()),1,f);
-		fclose(f);
+		QFile f;
+		f.setFileName( app::conf.logFile );
+		if( f.open( QIODevice::Append ) ){
+			f.write( str.toUtf8() );
+			f.close();
+		}
 	}
 
 	void loadBlackList(const QString &fileName, std::vector<QString> &data)
