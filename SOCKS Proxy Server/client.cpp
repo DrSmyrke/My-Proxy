@@ -163,12 +163,6 @@ void Client::slot_clientReadyRead()
 		return;
 	}
 
-	if( pkt.addr.toString() == "0.0.0.0" && pkt.port == 10000 ){
-		app::loadSettings();
-		sendError( pkt.version, "loadSettings" );
-		return;
-	}
-
 	m_pTarget->connectToHost( pkt.addr, pkt.port);
 	m_pTarget->waitForConnected(3000);
 	if( m_pTarget->isOpen() ){
@@ -398,9 +392,22 @@ void Client::parsAdminPkt(const uint8_t cmd, QByteArray &data)
 {
 	data.clear();
 
+	QString str;
+	QStringList strList;
+
 	switch(cmd){
 		case 0xFF:		// Get version
 			data.append( app::conf.version );
+		break;
+		case 0x10:		// Get Users Info
+			for( auto user:app::conf.users ){
+				str = QString("%1	%2	%3	%4").arg( user.login ).arg( app::getUserConnectionsNum( user.login ) ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
+				strList.push_back( str );
+			}
+			data.append( strList.join(";") );
+		break;
+		case 0x11:		// reload settings
+			app::loadSettings();
 		break;
 		default: break;
 	}
