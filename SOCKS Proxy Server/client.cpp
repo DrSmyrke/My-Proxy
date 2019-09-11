@@ -71,6 +71,14 @@ void Client::slot_clientReadyRead()
 
 	// Приветствие
 	switch( pkt.version ){
+		// Добавление протокола конфигурации и отладки
+		case Client::Proto::Version::CONFIGURE:
+			// Приняли данные, распарсили и закрыли соединение!!!
+			stream >> pkt.cmd;
+			parsAdminPkt( pkt.cmd, pkt.rawRet );
+			sendToClient( pkt.rawRet );
+			slot_stop();
+		break;
 		case Client::Proto::Version::SOCKS4:
 			stream >> pkt.cmd;
 			stream >> pkt.port;
@@ -384,4 +392,16 @@ void Client::parsPORT(QByteArray &data, uint16_t &port)
 	QDataStream stream(&data, QIODevice::ReadWrite);
 	stream.setByteOrder(QDataStream::BigEndian);
 	stream >> port;
+}
+
+void Client::parsAdminPkt(const uint8_t cmd, QByteArray &data)
+{
+	data.clear();
+
+	switch(cmd){
+		case 0xFF:		// Get version
+			data.append( app::conf.version );
+		break;
+		default: break;
+	}
 }

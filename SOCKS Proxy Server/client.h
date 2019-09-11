@@ -24,6 +24,7 @@ public:
 			AUTH_LP		= 0x01,
 			SOCKS4		= 0x04,
 			SOCKS5		= 0x05,
+			CONFIGURE	= 0x37,
 		};
 	};
 	explicit Client(qintptr descriptor, QObject *parent = 0);
@@ -52,6 +53,7 @@ private:
 	bool parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port, QString &domainAddr);
 	void parsIP(QByteArray &data, QHostAddress &addr);
 	void parsPORT(QByteArray &data, uint16_t &port);
+	void parsAdminPkt(const uint8_t cmd, QByteArray &data);
 };
 
 #endif // CLIENT_H
