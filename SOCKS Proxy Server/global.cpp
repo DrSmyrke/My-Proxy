@@ -381,73 +381,65 @@ namespace app {
 
 	void loadUsers()
 	{
-		app::setLog( 3, "LOAD USERS..." );
+		if( app::conf.usersFile.isEmpty() ){
+			app::setLog( 3, QString("LOAD USER FILE [%1] ... ERROR not defined").arg( app::conf.usersFile ) );
+			return;
+		}
+
+		if( !mf::checkFile( app::conf.usersFile.toUtf8().data() ) ){
+			app::setLog( 3, QString("LOAD USER FILE [%1] ... ERROR not found").arg( app::conf.usersFile ) );
+			return;
+		}
+
+		app::setLog( 4, QString("LOAD USER FILE [%1] ...").arg( app::conf.usersFile ) );
+
 		app::conf.users.clear();
-		QFile file;
-		file.setFileName( app::conf.usersFile );
-		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
-			QByteArray str;
-			char sym;
-			while(!file.atEnd()){
-				file.read( &sym, 1 );
-				if( sym == '\n' ){
-					auto tmp = str.split('	');
-					if( tmp.size() >= 2 ){
-						User user;
-						user.login		= tmp[0];
-						user.pass		= tmp[1];
-						if( tmp.size() >= 3 ) user.maxConnections = tmp[2].toHex().toUInt(nullptr,16);
-						if( tmp.size() >= 4 ){
-							app::setLog( 3, "LOAD USER ACCESS LIST..." );
-							for( auto elem:tmp[3].split(',') ){
-								app::setLog( 3, QString("	[%1]").arg(QString(elem)) );
-								user.accessList.push_back( elem );
-							}
-						}
-						if( tmp.size() >= 5 ){
-							app::setLog( 3, "LOAD USER BLACK LIST..." );
-							for( auto elem:tmp[4].split(',') ){
-								app::setLog( 3, QString("	[%1]").arg(QString(elem)) );
-								user.blockList.push_back( elem );
-							}
-						}
-						app::conf.users.push_back( user );
-					}
-					str.clear();
-					continue;
-				}
-				str.append( sym );
-			}
-			file.close();
+
+		QSettings users( app::conf.usersFile, QSettings::IniFormat );
+
+		for( auto group:users.childGroups() ){
+			app::setLog( 4, QString("   FOUND USER [%1]").arg( group ) );
+			users.beginGroup( group );
+
+			User user;
+
+			user.login				= group;
+			user.group				= app::getUserGroupFromName( users.value( "group", "" ).toString() );
+			user.pass				= users.value( "password", "" ).toString();
+			user.maxConnections		= users.value( "maxConnections", 10 ).toUInt();
+			user.accessList			= users.value( "accessList", "*" ).toString().split(",");
+			user.blockList			= users.value( "blockList", "*" ).toString().split(",");
+
+			app::setLog( 5, QString("      USER PARAM [%1][%2][%3]").arg( user.group ).arg( user.pass ).arg( user.maxConnections ) );
+
+			app::conf.users.push_back( user );
+
+			users.endGroup();
 		}
 	}
 
 	void saveUsers()
 	{
-		app::setLog( 3, "SAVE USERS..." );
-		QFile file;
-		file.setFileName( app::conf.usersFile );
-		if(file.open(QIODevice::WriteOnly | QIODevice::Text)){
-			for( auto elem:app::conf.users ){
-				QByteArray data;
-				data.append( elem.login );
-				data.append( "	" );
-				data.append( elem.pass );
-				data.append( "	" );
-				data.append( QString::number(elem.maxConnections) );
-				if( elem.accessList.size() > 0 ){
-					data.append( "	" );
-					data.append( elem.accessList.join(",") );
-				}
-				if( elem.blockList.size() > 0 ){
-					data.append( "	" );
-					data.append( elem.blockList.join(",") );
-				}
+		if( app::conf.usersFile.isEmpty() ){
+			app::setLog( 3, QString("SAVE USER FILE [%1] ... ERROR not defined").arg( app::conf.usersFile ) );
+			return;
+		}
 
-				file.write( data );
-				file.write( "\n" );
-			}
-			file.close();
+		app::setLog( 4, QString("SAVE USER FILE [%1] ...").arg( app::conf.usersFile ) );
+
+		QSettings users( app::conf.usersFile, QSettings::IniFormat );
+		users.clear();
+
+		for( auto user:app::conf.users ){
+			users.beginGroup( user.login );
+
+			users.setValue( "group", app::getUserGroupNameFromID( user.group ) );
+			users.setValue( "password", user.pass );
+			users.setValue( "maxConnections", user.maxConnections );
+			users.setValue( "accessList", user.accessList.join(",") );
+			users.setValue( "blockList", user.blockList.join(",") );
+
+			users.endGroup();
 		}
 	}
 
@@ -506,6 +498,29 @@ namespace app {
 		if( iter != app::conf.usersConnections.end() ) num = (*iter).second;
 
 		return num;
+	}
+
+	uint8_t getUserGroupFromName(const QString &name)
+	{
+		uint8_t res = UserGrpup::users;
+
+		if( name == "admin" ){
+			res = UserGrpup::admins;
+			return res;
+		}
+
+		return res;
+	}
+
+	QString getUserGroupNameFromID(const uint8_t id)
+	{
+		QString res = "user";
+
+		switch( id ){
+			case UserGrpup::admins:		res = "admin";	break;
+		}
+
+		return res;
 	}
 
 }

@@ -91,6 +91,8 @@ namespace app {
 	bool isAccessUserList(const QString &login, const QString &addr);
 	void changeUserConnection(const QString &login, const int connCount);
 	uint32_t getUserConnectionsNum(const QString &login);
+	uint8_t getUserGroupFromName(const QString &name);
+	QString getUserGroupNameFromID(const uint8_t id);
 }
 
 #endif // GLOBAL_H
