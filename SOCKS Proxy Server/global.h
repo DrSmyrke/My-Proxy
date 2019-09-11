@@ -29,54 +29,54 @@ struct Config{
 #ifdef __linux__
 	QString confFile					= "/etc/DrSmyrke/MyProxy/config.ini";
 	QString logFile						= "/var/log/socksproxy.log";
-	QString blackAddrsFile				= "/etc/DrSmyrke/MyProxy/blackAddrs.list";
-	QString socks4AccessFile			= "/etc/DrSmyrke/MyProxy/socks4Access.list";
+	QString accessFile					= "/etc/DrSmyrke/MyProxy/access.list";
 	QString usersFile					= "/etc/DrSmyrke/MyProxy/users.list";
 #elif _WIN32
 	QString confFile					= QDir::homePath() + "/MyProxy/config.ini";
 	QString logFile						= QDir::homePath() + "/MyProxy/socksproxy.log";
-	QString blackAddrsFile				= QDir::homePath() + "/MyProxy/blackAddrs.list";
-	QString socks4AccessFile			= QDir::homePath() + "/MyProxy/socks4Access.list";
+	QString accessFile					= QDir::homePath() + "/MyProxy/access.list";
 	QString usersFile					= QDir::homePath() + "/MyProxy/users.list";
 #endif
 	uint16_t port						= 7301;
-	bool saveSettings					= false;
-	bool saveUsers						= false;
+	bool settingsSave					= false;
+	bool usersSave						= false;
 	std::vector<User> users;
 	std::map<QString,uint32_t> usersConnections;
 	QByteArray realmString				= "ProxyAuth";
 	QString version;
 };
 
-struct BlackList{
-	std::vector<QString> nameAddrs;
-	std::vector<QHostAddress> ipAddrs;
-	bool addrsFileSave = false;
+struct AccessList{
+	std::vector<QHostAddress> socks4Access;
+	std::vector<QString> blackDomains;
+	std::vector<QHostAddress> blackIPs;
+	std::vector<QString> whiteDomains;
+	std::vector<QHostAddress> whiteIPs;
 	std::vector< std::pair<QHostAddress,uint32_t> > BANipAddrs;
-	bool BANipAddrsLock = false;
+	bool accessFileSave = false;
 };
 
-struct AccessLists{
-	std::vector<QHostAddress> socks4access;
-	bool socks4AccessFileFileSave = false;
+struct LockFlags{
+	bool BANipAddrs		= false;
+	bool blackIPs		= false;
+	bool blackDomains	= false;
 };
 
 namespace app {
 	extern Config conf;
-	extern BlackList blackList;
-	extern AccessLists accessLists;
+	extern AccessList accessList;
+	extern LockFlags lockFlags;
 
 	void loadSettings();
 	void saveSettings();
 	bool parsArgs(int argc, char *argv[]);
 	void setLog(const uint8_t logLevel, const QString &mess);
-	void loadBlackList(const QString &fileName, std::vector<QString> &data);
-	void saveBlackList(const QString &fileName, const std::vector<QString> &data);
 	void addGlobalBlackAddr(const QString &str);
+	void addGlobalBlackIP(const QHostAddress &addr);
 	void updateBlackIPAddrs();
 	bool isBlockAddr(const QHostAddress& addr);
-	void loadAccessFile(const QString &fileName, std::vector<QHostAddress> &data);
-	void saveAccessFile(const QString &fileName, std::vector<QHostAddress> &data);
+	void loadAccessFile();
+	void saveAccessFile();
 	bool addUser(const QString &login, const QString &pass, const uint8_t group = UserGrpup::users);
 	bool findUser(const QString &login);
 	bool isSocks4Access(const QHostAddress &addr);

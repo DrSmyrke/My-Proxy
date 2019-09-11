@@ -55,18 +55,18 @@ void Server::incomingConnection(qintptr socketDescriptor)
 void Server::slot_timer()
 {
 	//проверка бан листа
-	while( app::blackList.BANipAddrsLock );
-	app::blackList.BANipAddrsLock = true;
+	while( app::lockFlags.BANipAddrs );
+	app::lockFlags.BANipAddrs = true;
 
-	for( auto it = app::blackList.BANipAddrs.begin(); it != app::blackList.BANipAddrs.end(); it++ ){
+	for( auto it = app::accessList.BANipAddrs.begin(); it != app::accessList.BANipAddrs.end(); it++ ){
 		if( (*it).second > 0 ){
 			(*it).second--;
 		}else{
-			app::blackList.BANipAddrs.erase( it );
+			app::accessList.BANipAddrs.erase( it );
 		}
 	}
 
-	app::blackList.BANipAddrsLock = false;
+	app::lockFlags.BANipAddrs = false;
 
 	// сохранение настроек
 	app::saveSettings();
