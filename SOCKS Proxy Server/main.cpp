@@ -6,14 +6,12 @@ int main(int argc, char *argv[])
 {
 	QCoreApplication a(argc, argv);
 
+	app::conf.version = QString("%1.%2").arg(APP_VER_FIRST).arg(APP_VER_SECOND);
+
 	app::loadSettings();
 	if( !app::parsArgs(argc, argv) ) return 0;
 
 	if( !app::conf.logFile.isEmpty() ) QFile( app::conf.logFile ).remove();
-
-	//TODO:remove
-	//app::conf.socksClients.push_back( "192.168.1.250" );
-	//app::conf.socksClients.push_back( "127.0.0.1" );
 
 	//Server* server = new Server();
 	//server->run();

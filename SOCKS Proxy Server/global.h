@@ -31,13 +31,13 @@ struct Config{
 	QString logFile						= "/var/log/socksproxy.log";
 	QString blackAddrsFile				= "/etc/DrSmyrke/MyProxy/blackAddrs.list";
 	QString socks4AccessFile			= "/etc/DrSmyrke/MyProxy/socks4Access.list";
-	QString usersFile					= "/etc/DrSmyrke/MyProxy/usersFile.list";
+	QString usersFile					= "/etc/DrSmyrke/MyProxy/users.list";
 #elif _WIN32
 	QString confFile					= QDir::homePath() + "/MyProxy/config.ini";
 	QString logFile						= QDir::homePath() + "/MyProxy/socksproxy.log";
 	QString blackAddrsFile				= QDir::homePath() + "/MyProxy/blackAddrs.list";
 	QString socks4AccessFile			= QDir::homePath() + "/MyProxy/socks4Access.list";
-	QString usersFile					= QDir::homePath() + "/MyProxy/usersFile.list";
+	QString usersFile					= QDir::homePath() + "/MyProxy/users.list";
 #endif
 	uint16_t port						= 7301;
 	bool saveSettings					= false;
@@ -45,6 +45,7 @@ struct Config{
 	std::vector<User> users;
 	std::map<QString,uint32_t> usersConnections;
 	QByteArray realmString				= "ProxyAuth";
+	QString version;
 };
 
 struct BlackList{

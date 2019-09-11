@@ -88,7 +88,7 @@ void Client::slot_clientReadyRead()
 				return;
 			}
 
-			if( getUserConnectionsNum( m_user.login ) < m_user.maxConnections ){
+			if( app::getUserConnectionsNum( m_user.login ) < m_user.maxConnections ){
 				app::changeUserConnection( m_user.login, 1 );
 			}else{
 				m_auth = false;

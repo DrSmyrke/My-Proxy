@@ -24,3 +24,8 @@ HEADERS += \
     client.h \
     global.h \
     myfunctions.h
+
+# Check if the git version file exists
+! include(./gitversion.pri) {
+        error("Couldn't find the gitversion.pri file!")
+}

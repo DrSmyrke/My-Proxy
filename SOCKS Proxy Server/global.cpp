@@ -398,14 +398,14 @@ namespace app {
 						user.pass		= tmp[1];
 						if( tmp.size() >= 3 ) user.maxConnections = tmp[2].toHex().toUInt(nullptr,16);
 						if( tmp.size() >= 4 ){
-							app::setLog( 3, "LOAD ACCESS LIST..." );
+							app::setLog( 3, "LOAD USER ACCESS LIST..." );
 							for( auto elem:tmp[3].split(',') ){
 								app::setLog( 3, QString("	[%1]").arg(QString(elem)) );
 								user.accessList.push_back( elem );
 							}
 						}
 						if( tmp.size() >= 5 ){
-							app::setLog( 3, "LOAD BLACK LIST..." );
+							app::setLog( 3, "LOAD USER BLACK LIST..." );
 							for( auto elem:tmp[4].split(',') ){
 								app::setLog( 3, QString("	[%1]").arg(QString(elem)) );
 								user.blockList.push_back( elem );
@@ -484,8 +484,17 @@ namespace app {
 		if( connCount == 0 ){
 			app::conf.usersConnections[login] = 0;
 		}else{
-			app::conf.usersConnections[login] += connCount;
-			if( app::conf.usersConnections[login] < 0 ) app::conf.usersConnections[login] = 0;
+
+			if( connCount < 0 ){
+				uint32_t r = 0 - connCount;
+				if( app::conf.usersConnections[login] < r ){
+					app::conf.usersConnections[login] = 0;
+				}else{
+					app::conf.usersConnections[login] += connCount;
+				}
+			}else{
+				app::conf.usersConnections[login] += connCount;
+			}
 		}
 	}
 
@@ -494,7 +503,7 @@ namespace app {
 		uint32_t num = 0;
 
 		auto iter = app::conf.usersConnections.find( login );
-		if( iter != app::conf.usersConnections.end() ) num = (*iter);
+		if( iter != app::conf.usersConnections.end() ) num = (*iter).second;
 
 		return num;
 	}

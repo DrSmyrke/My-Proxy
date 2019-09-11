@@ -2,7 +2,7 @@
 
 Server::Server(QObject *parent)	: QTcpServer(parent)
 {
-	app::setLog( 0, "SERVER CREATING..." );
+	app::setLog( 0, QString("SERVER CREATING v%1 ...").arg(app::conf.version) );
 
 	m_pTimer = new QTimer(this);
 		m_pTimer->setInterval( 1000 );
