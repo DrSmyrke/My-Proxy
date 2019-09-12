@@ -245,37 +245,96 @@ namespace app {
 		app::accessList.whiteDomains.clear();
 		app::accessList.whiteIPs.clear();
 
-		QSettings fileData( app::conf.accessFile, QSettings::IniFormat );
+		bool BANipAddrs		= false;
+		bool blackDomains	= false;
+		bool blackIPs		= false;
+		bool socks4Access	= false;
+		bool whiteDomains	= false;
+		bool whiteIPs		= false;
 
-		for( auto group:fileData.childGroups() ){
-			app::setLog( 4, QString("   FOUND GROUP [%1]").arg( group ) );
-			fileData.beginGroup( group );
+		QHostAddress addr;
 
-			qDebug()<<fileData.childKeys();
-
-			fileData.endGroup();
+		QFile file;
+		file.setFileName( app::conf.accessFile );
+		if( file.open( QIODevice::ReadOnly ) ){
+			while(!file.atEnd()){
+				auto str = file.readLine();
+				str.replace( "\n", "" );
+				str.replace( "\r", "" );
+				if( str == "[Socks4Access]" ){
+					socks4Access	= true;
+					BANipAddrs		= false;
+					blackDomains	= false;
+					blackIPs		= false;
+					whiteDomains	= false;
+					whiteIPs		= false;
+					continue;
+				}
+				if( str == "[WhiteDomains]" ){
+					socks4Access	= false;
+					BANipAddrs		= false;
+					blackDomains	= false;
+					blackIPs		= false;
+					whiteDomains	= true;
+					whiteIPs		= false;
+					continue;
+				}
+				if( str == "[WhiteAddrs]" ){
+					socks4Access	= false;
+					BANipAddrs		= false;
+					blackDomains	= false;
+					blackIPs		= false;
+					whiteDomains	= false;
+					whiteIPs		= true;
+					continue;
+				}
+				if( str == "[BlackDomains]" ){
+					socks4Access	= false;
+					BANipAddrs		= false;
+					blackDomains	= true;
+					blackIPs		= false;
+					whiteDomains	= false;
+					whiteIPs		= false;
+					continue;
+				}
+				if( str == "[BlackAddrs]" ){
+					socks4Access	= false;
+					BANipAddrs		= false;
+					blackDomains	= false;
+					blackIPs		= true;
+					whiteDomains	= false;
+					whiteIPs		= false;
+					continue;
+				}
+				if( str == "[BanIPs]" ){
+					socks4Access	= false;
+					BANipAddrs		= true;
+					blackDomains	= false;
+					blackIPs		= false;
+					whiteDomains	= false;
+					whiteIPs		= false;
+					continue;
+				}
+				if( socks4Access ){
+					if( addr.setAddress( QString(str) ) ) app::accessList.socks4Access.push_back( addr );
+				}
+				if( BANipAddrs ){
+					auto elem = str.split('=');
+					if( elem.size() == 2 ){
+						if( addr.setAddress( QString(elem[0]) ) ) app::addBAN( addr, elem[1].toHex().toUInt( nullptr, 16 ) );
+					}
+				}
+				if( whiteIPs ){
+					if( addr.setAddress( QString(str) ) ) app::accessList.whiteIPs.push_back( addr );
+				}
+				if( blackIPs ){
+					if( addr.setAddress( QString(str) ) ) app::accessList.blackIPs.push_back( addr );
+				}
+				if( blackDomains ) app::accessList.blackDomains.push_back( str );
+				if( whiteDomains ) app::accessList.whiteDomains.push_back( str );
+			}
+			file.close();
 		}
-
-
-//		for( auto group:users.childGroups() ){
-//			app::setLog( 4, QString("   FOUND USER [%1]").arg( group ) );
-//			users.beginGroup( group );
-
-//			User user;
-
-//			user.login				= group;
-//			user.group				= app::getUserGroupFromName( users.value( "group", "" ).toString() );
-//			user.pass				= users.value( "password", "" ).toString();
-//			user.maxConnections		= users.value( "maxConnections", 10 ).toUInt();
-//			user.accessList			= users.value( "accessList", "*" ).toString().split(",");
-//			user.blockList			= users.value( "blockList", "*" ).toString().split(",");
-
-//			app::setLog( 5, QString("      USER PARAM [%1][%2][%3]").arg( user.group ).arg( user.pass ).arg( user.maxConnections ) );
-
-//			app::conf.users.push_back( user );
-
-//			users.endGroup();
-//		}
 	}
 
 	void saveAccessFile()
@@ -287,32 +346,43 @@ namespace app {
 
 		app::setLog( 4, QString("SAVE ACCESS FILE [%1] ...").arg( app::conf.accessFile ) );
 
-		QSettings accessFile( app::conf.accessFile, QSettings::IniFormat );
-		accessFile.clear();
-
-		accessFile.beginGroup( "Socks4Access" );
-		for( auto elem:app::accessList.socks4Access ) accessFile.setValue( elem.toString(), QVariant() );
-		accessFile.endGroup();
-
-		accessFile.beginGroup( "WhiteDomains" );
-		for( auto elem:app::accessList.whiteDomains ) accessFile.setValue( elem, QVariant() );
-		accessFile.endGroup();
-
-		accessFile.beginGroup( "WhiteAddrs" );
-		for( auto elem:app::accessList.whiteIPs ) accessFile.setValue( elem.toString(), QVariant() );
-		accessFile.endGroup();
-
-		accessFile.beginGroup( "BlackDomains" );
-		for( auto elem:app::accessList.blackDomains ) accessFile.setValue( elem, QVariant() );
-		accessFile.endGroup();
-
-		accessFile.beginGroup( "BlackAddrs" );
-		for( auto elem:app::accessList.blackIPs ) accessFile.setValue( elem.toString(), QVariant() );
-		accessFile.endGroup();
-
-		accessFile.beginGroup( "BanIPs" );
-		for( auto elem:app::accessList.BANipAddrs ) accessFile.setValue( elem.first.toString(), elem.second );
-		accessFile.endGroup();
+		QFile file;
+		file.setFileName( app::conf.accessFile );
+		if( file.open( QIODevice::WriteOnly ) ){
+			file.write("[Socks4Access]\n");
+			for( auto elem:app::accessList.socks4Access ){
+				file.write( elem.toString().toUtf8().data() );
+				file.write("\n");
+			}
+			file.write("[WhiteAddrs]\n");
+			for( auto elem:app::accessList.whiteIPs ){
+				file.write( elem.toString().toUtf8().data() );
+				file.write("\n");
+			}
+			file.write("[WhiteDomains]\n");
+			for( auto elem:app::accessList.whiteDomains ){
+				file.write( elem.toUtf8().data() );
+				file.write("\n");
+			}
+			file.write("[BlackAddrs]\n");
+			for( auto elem:app::accessList.blackIPs ){
+				file.write( elem.toString().toUtf8().data() );
+				file.write("\n");
+			}
+			file.write("[BlackDomains]\n");
+			for( auto elem:app::accessList.blackDomains ){
+				file.write( elem.toUtf8().data() );
+				file.write("\n");
+			}
+			file.write("[BanIPs]\n");
+			for( auto elem:app::accessList.BANipAddrs ){
+				file.write( elem.first.toString().toUtf8().data() );
+				file.write("=");
+				file.write( QString::number(elem.second).toUtf8().data() );
+				file.write("\n");
+			}
+			file.close();
+		}
 
 		app::accessList.accessFileSave = false;
 	}
@@ -409,10 +479,8 @@ namespace app {
 		return res;
 	}
 
-	void addBAN(const QHostAddress &addr)
+	void addBAN(const QHostAddress &addr, const uint8_t timeout)
 	{
-		uint8_t timeout = 30;
-
 		while( app::lockFlags.BANipAddrs );
 
 		if( !isBan( addr ) ){

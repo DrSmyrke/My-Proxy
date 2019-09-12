@@ -83,7 +83,7 @@ namespace app {
 	bool chkAuth(const QString &login, const QString &pass);
 	User getUserData(const QString &login);
 	bool isBan(const QHostAddress &addr);
-	void addBAN(const QHostAddress &addr);
+	void addBAN(const QHostAddress &addr, const uint8_t timeout = 30);
 	bool isBlockedDomName(const QString &domName);
 	void loadUsers();
 	void saveUsers();
