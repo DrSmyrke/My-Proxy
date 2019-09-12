@@ -70,4 +70,9 @@ void Server::slot_timer()
 
 	// сохранение настроек
 	app::saveSettings();
+
+	if( m_counter++ == 100 ){
+		app::updateBlackIPAddrs();
+		m_counter = 0;
+	}
 }
