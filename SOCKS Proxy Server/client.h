@@ -15,9 +15,11 @@ public:
 		uint8_t cmd;
 		uint16_t port;
 		uint32_t ip;
+		uint16_t len;
 		QHostAddress addr;
 		QString domainAddr;
 		QByteArray rawRet;
+		QByteArray rawGet;
 	};
 	struct Proto{
 		enum Version{
@@ -53,7 +55,7 @@ private:
 	bool parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port, QString &domainAddr);
 	void parsIP(QByteArray &data, QHostAddress &addr);
 	void parsPORT(QByteArray &data, uint16_t &port);
-	void parsAdminPkt(const uint8_t cmd, QByteArray &data);
+	void parsAdminPkt(const uint8_t cmd, QByteArray &sendData, const QByteArray &data);
 };
 
 #endif // CLIENT_H
