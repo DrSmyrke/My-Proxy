@@ -668,7 +668,7 @@ namespace app {
 	{
 		for( auto &user:app::conf.users ){
 			if( login == user.login ){
-				user.lastLoginTimestamp = QDateTime::QDate::currentDate().toTime_t();
+				user.lastLoginTimestamp = QDateTime::currentDateTime().toTime_t();
 				break;
 			}
 		}
