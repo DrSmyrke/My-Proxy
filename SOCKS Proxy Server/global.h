@@ -93,6 +93,7 @@ namespace app {
 	uint32_t getUserConnectionsNum(const QString &login);
 	uint8_t getUserGroupFromName(const QString &name);
 	QString getUserGroupNameFromID(const uint8_t id);
+	void updateUserLoginTimeStamp(const QString &login);
 }
 
 #endif // GLOBAL_H

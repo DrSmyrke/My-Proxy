@@ -284,6 +284,7 @@ bool Client::parsAuthPkt(QByteArray &data)
 	if( res ){
 		m_user = app::getUserData( login );
 		m_auth = true;
+		app::updateUserLoginTimeStamp( m_user.login );
 		app::setLog(4,QString("Client::parsAuthPkt() auth success [%1]").arg(QString(login)));
 	}else{
 		app::addBAN( m_pClient->peerAddress() );

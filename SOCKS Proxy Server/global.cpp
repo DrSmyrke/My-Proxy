@@ -664,4 +664,14 @@ namespace app {
 		return res;
 	}
 
+	void updateUserLoginTimeStamp(const QString &login)
+	{
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.lastLoginTimestamp = QDateTime::QDate::currentDate().toTime_t();
+				break;
+			}
+		}
+	}
+
 }
