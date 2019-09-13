@@ -46,26 +46,24 @@ struct Config{
 	QString version;
 };
 
+struct BanData{
+	QHostAddress addr;
+	uint32_t sec;
+};
+
 struct AccessList{
 	std::vector<QHostAddress> socks4Access;
 	std::vector<QString> blackDomains;
 	std::vector<QHostAddress> blackIPs;
 	std::vector<QString> whiteDomains;
 	std::vector<QHostAddress> whiteIPs;
-	std::vector< std::pair<QHostAddress,uint32_t> > BANipAddrs;
+	QList< BanData > banList;
 	bool accessFileSave = false;
-};
-
-struct LockFlags{
-	bool BANipAddrs		= false;
-	bool blackIPs		= false;
-	bool blackDomains	= false;
 };
 
 namespace app {
 	extern Config conf;
 	extern AccessList accessList;
-	extern LockFlags lockFlags;
 
 	void loadSettings();
 	void saveSettings();
@@ -94,6 +92,7 @@ namespace app {
 	uint8_t getUserGroupFromName(const QString &name);
 	QString getUserGroupNameFromID(const uint8_t id);
 	void updateUserLoginTimeStamp(const QString &login);
+	void updateBanList();
 }
 
 #endif // GLOBAL_H

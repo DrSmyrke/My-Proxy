@@ -8,7 +8,6 @@
 namespace app {
 	Config conf;
 	AccessList accessList;
-	LockFlags lockFlags;
 
 	void loadSettings()
 	{
@@ -147,9 +146,6 @@ namespace app {
 	{
 		bool find = false;
 
-		while( app::lockFlags.blackDomains );
-		app::lockFlags.blackDomains = true;
-
 		for( auto elem:app::accessList.blackDomains ){
 			if( elem == str ){
 				find = true;
@@ -161,16 +157,11 @@ namespace app {
 			app::accessList.blackDomains.push_back( str );
 			app::accessList.accessFileSave = true;
 		}
-
-		app::lockFlags.blackDomains = false;
 	}
 
 	void addGlobalBlackIP(const QHostAddress &addr)
 	{
 		bool find = false;
-
-		while( app::lockFlags.blackIPs );
-		app::lockFlags.blackIPs = true;
 
 		for( auto elem:app::accessList.blackIPs ){
 			if( elem == addr ){
@@ -183,16 +174,11 @@ namespace app {
 			app::accessList.blackIPs.push_back( addr );
 			app::accessList.accessFileSave = true;
 		}
-
-		app::lockFlags.blackIPs = false;
 	}
 
 	void updateBlackIPAddrs()
 	{
 		app::setLog( 3, "UPDATE BLACK IP LIST..." );
-
-		while( app::lockFlags.blackDomains );
-		app::lockFlags.blackDomains = true;
 
 		for( auto addr:app::accessList.blackDomains ){
 			auto info = QHostInfo::fromName( addr );
@@ -204,15 +190,11 @@ namespace app {
 				}
 			}
 		}
-
-		app::lockFlags.blackDomains = false;
 	}
 
 	bool isBlockAddr(const QHostAddress& addr)
 	{
 		bool res = false;
-
-		while( app::lockFlags.blackIPs );
 
 		for( auto elem:app::accessList.blackIPs ){
 			if( elem == addr ){
@@ -238,7 +220,7 @@ namespace app {
 
 		app::setLog( 3, QString("LOAD ACCESS FILE... [%1]").arg( app::conf.usersFile ) );
 
-		app::accessList.BANipAddrs.clear();
+		app::accessList.banList.clear();
 		app::accessList.blackDomains.clear();
 		app::accessList.blackIPs.clear();
 		app::accessList.socks4Access.clear();
@@ -375,10 +357,10 @@ namespace app {
 				file.write("\n");
 			}
 			file.write("[BanIPs]\n");
-			for( auto elem:app::accessList.BANipAddrs ){
-				file.write( elem.first.toString().toUtf8().data() );
+			for( auto elem:app::accessList.banList ){
+				file.write( elem.addr.toString().toUtf8().data() );
 				file.write("=");
-				file.write( QString::number(elem.second).toUtf8().data() );
+				file.write( QString::number(elem.sec).toUtf8().data() );
 				file.write("\n");
 			}
 			file.close();
@@ -465,43 +447,34 @@ namespace app {
 	{
 		bool res = false;
 
-		while( app::lockFlags.BANipAddrs );
-		app::lockFlags.BANipAddrs = true;
-
-		for( auto elem:app::accessList.BANipAddrs ){
-			if( addr == elem.first ){
+		for( auto elem:app::accessList.banList ){
+			if( addr == elem.addr ){
 				res = true;
 				break;
 			}
 		}
-		app::lockFlags.BANipAddrs = false;
 
 		return res;
 	}
 
 	void addBAN(const QHostAddress &addr, const uint8_t timeout)
 	{
-		while( app::lockFlags.BANipAddrs );
-
 		if( !isBan( addr ) ){
+			BanData data;
+			data.addr = addr;
+			data.sec = timeout;
 
-			std::pair<QHostAddress,uint32_t> data;
-			data.first = addr;
-			data.second = timeout;
-
-			app::accessList.BANipAddrs.push_back( data );
+			app::accessList.banList.push_back( data );
+			app::accessList.accessFileSave = true;
 			return;
-		}
-
-		app::lockFlags.BANipAddrs = true;
-
-		for( auto &elem:app::accessList.BANipAddrs ){
-			if( addr == elem.first ){
-				elem.second += 30;
-				break;
+		}else{
+			for( auto &elem:app::accessList.banList ){
+				if( addr == elem.addr ){
+					elem.sec += 30;
+					break;
+				}
 			}
 		}
-		app::lockFlags.BANipAddrs = false;
 	}
 
 	bool isBlockedDomName(const QString &domName)
@@ -671,6 +644,26 @@ namespace app {
 				user.lastLoginTimestamp = QDateTime::currentDateTime().toTime_t();
 				break;
 			}
+		}
+	}
+
+	void updateBanList()
+	{
+		QList<int> removeList;
+		int i = 0;
+
+		for( auto &elem:app::accessList.banList ){
+			if( elem.sec > 0 ){
+				elem.sec--;
+			}else{
+				removeList.push_back( i );
+			}
+			i++;
+		}
+
+		if( removeList.size() > 0 ){
+			for( auto elem:removeList ) app::accessList.banList.removeAt( elem );
+			app::accessList.accessFileSave = true;
 		}
 	}
 
