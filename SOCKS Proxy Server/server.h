@@ -26,7 +26,6 @@ private slots:
 	void slot_timer();
 private:
 	QTimer* m_pTimer;
-	uint8_t m_counter = 0;
 };
 
 #endif // SERVER_H

@@ -116,7 +116,7 @@ void Client::slot_clientReadyRead()
 		case Client::Proto::Version::SOCKS5:
 			// is BAN ?
 			if( app::isBan( m_pClient->peerAddress() ) ){
-				sendError( pkt.version, QString("IP is BAN"), 0x05, 2 );
+				sendError( pkt.version, QString("IP is BAN [%1 sec]").arg( app::getTimeBan( m_pClient->peerAddress() ) ), 0x05, 2 );
 				return;
 			}
 

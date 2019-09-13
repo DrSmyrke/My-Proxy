@@ -470,7 +470,7 @@ namespace app {
 		}else{
 			for( auto &elem:app::accessList.banList ){
 				if( addr == elem.addr ){
-					elem.sec += 30;
+					elem.sec += timeout;
 					break;
 				}
 			}
@@ -665,6 +665,20 @@ namespace app {
 			for( auto elem:removeList ) app::accessList.banList.removeAt( elem );
 			app::accessList.accessFileSave = true;
 		}
+	}
+
+	uint8_t getTimeBan(const QHostAddress &addr)
+	{
+		uint8_t res = 0;
+
+		for( auto elem:app::accessList.banList ){
+			if( addr == elem.addr ){
+				res = elem.sec;
+				break;
+			}
+		}
+
+		return res;
 	}
 
 }

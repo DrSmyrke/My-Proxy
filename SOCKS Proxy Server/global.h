@@ -48,7 +48,7 @@ struct Config{
 
 struct BanData{
 	QHostAddress addr;
-	uint32_t sec;
+	uint8_t sec;
 };
 
 struct AccessList{
@@ -81,7 +81,7 @@ namespace app {
 	bool chkAuth(const QString &login, const QString &pass);
 	User getUserData(const QString &login);
 	bool isBan(const QHostAddress &addr);
-	void addBAN(const QHostAddress &addr, const uint8_t timeout = 30);
+	void addBAN(const QHostAddress &addr, const uint8_t timeout = 60);
 	bool isBlockedDomName(const QString &domName);
 	void loadUsers();
 	void saveUsers();
@@ -93,6 +93,7 @@ namespace app {
 	QString getUserGroupNameFromID(const uint8_t id);
 	void updateUserLoginTimeStamp(const QString &login);
 	void updateBanList();
+	uint8_t getTimeBan(const QHostAddress &addr);
 }
 
 #endif // GLOBAL_H

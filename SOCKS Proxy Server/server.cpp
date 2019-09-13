@@ -25,7 +25,6 @@ bool Server::run()
 
 	app::setLog( 0, QString("SERVER [ ACTIVATED ] PORT: [%1]").arg(app::conf.port) );
 	m_pTimer->start();
-	app::loadUsers();
 
 	return true;
 }
@@ -59,9 +58,4 @@ void Server::slot_timer()
 
 	// сохранение настроек
 	app::saveSettings();
-
-	if( m_counter++ == 100 ){
-		app::updateBlackIPAddrs();
-		m_counter = 0;
-	}
 }
