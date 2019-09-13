@@ -158,6 +158,18 @@ void Client::slot_clientReadyRead()
 	m_pTarget->connectToHost( pkt.addr, pkt.port);
 	m_pTarget->waitForConnected(3000);
 	if( m_pTarget->isOpen() ){
+		//Send auth data from control server
+		if( pkt.addr.toString() == "127.0.0.1" && pkt.port == app::conf.controlPort && m_auth ){
+			app::setLog(4,QString("Client::Send auth data from control server"));
+			QByteArray ba;
+			ba.append( ControlCommand::AUTH );
+			ba.append( mf::toBigEndianShort( m_user.login.length() ) );
+			ba.append( m_user.login );
+			ba.append( mf::toBigEndianShort( m_user.pass.length() ) );
+			ba.append( m_user.pass );
+			ba.append( '\0' );
+			sendToTarget( ba );
+		}
 		pkt.rawRet.clear();
 		switch( pkt.version ){
 			case Client::Proto::Version::SOCKS4:

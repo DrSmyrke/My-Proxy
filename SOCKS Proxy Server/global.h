@@ -13,6 +13,12 @@ struct UserGrpup{
 	};
 };
 
+struct ControlCommand{
+	enum{
+		AUTH		= 0x37,
+	};
+};
+
 struct User{
 	QString login;
 	QString pass;
@@ -80,6 +86,7 @@ namespace app {
 	bool findUser(const QString &login);
 	bool isSocks4Access(const QHostAddress &addr);
 	bool chkAuth(const QString &login, const QString &pass);
+	bool chkAuth2(const QString &login, const QString &pass);
 	User getUserData(const QString &login);
 	bool isBan(const QHostAddress &addr);
 	void addBAN(const QHostAddress &addr, const uint8_t timeout = 60);

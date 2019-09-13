@@ -431,6 +431,20 @@ namespace app {
 		return res;
 	}
 
+	bool chkAuth2(const QString &login, const QString &pass)
+	{
+		bool res = false;
+
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				if( pass == user.pass ) res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
 	User getUserData(const QString &login)
 	{
 		User data;

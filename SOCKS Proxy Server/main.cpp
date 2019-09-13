@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include "server.h"
+#include "controlserver.h"
 #include "global.h"
 
 int main(int argc, char *argv[])
@@ -13,10 +14,11 @@ int main(int argc, char *argv[])
 
 	if( !app::conf.logFile.isEmpty() ) QFile( app::conf.logFile ).remove();
 
-	//Server* server = new Server();
-	//server->run();
 	Server server;
 	if( !server.run() ) return 0;
+
+	ControlServer controlServer;
+	if( !controlServer.run() ) return 0;
 
 	return a.exec();
 }

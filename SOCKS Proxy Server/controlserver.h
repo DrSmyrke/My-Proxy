@@ -43,12 +43,12 @@ private:
 //	void log(const QString &text);
 //	void sendToClient(const QByteArray &data);
 //	void sendToTarget(const QByteArray &data);
-//	bool parsAuthPkt(QByteArray &data);
+	bool parsAuthPkt(QByteArray &data);
 //	bool parsAuthMethods(QByteArray &data);
 //	bool parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port, QString &domainAddr);
 //	void parsIP(QByteArray &data, QHostAddress &addr);
 //	void parsPORT(QByteArray &data, uint16_t &port);
-//	void parsAdminPkt(const uint8_t cmd, QByteArray &sendData, const QByteArray &data);
+	void parsAdminPkt(QByteArray &data, QByteArray &sendData);
 };
 
 #endif // CONTROLSERVER_H

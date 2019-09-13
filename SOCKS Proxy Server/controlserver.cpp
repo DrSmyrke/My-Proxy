@@ -2,7 +2,7 @@
 
 ControlServer::ControlServer(QObject *parent) : QTcpServer(parent)
 {
-	app::setLog( 0, QString("CONTROL SERVER CREATING v%1 ...").arg(app::conf.version) );
+	app::setLog( 0, QString("CONTROL SERVER CREATING ...") );
 }
 
 ControlServer::~ControlServer()
@@ -58,6 +58,8 @@ void ControlServer::incomingConnection(qintptr socketDescriptor)
 ControlClient::ControlClient(qintptr descriptor, QObject *parent)
 	: QObject(parent)
 {
+	app::setLog(5,QString("ControlClient::ControlClient created"));
+
 	m_pClient = new QTcpSocket();
 
 	if( !m_pClient->setSocketDescriptor( descriptor ) ) slot_stop();
@@ -92,4 +94,68 @@ void ControlClient::slot_clientReadyRead()
 	}
 
 	app::setLog(0,QString("ControlClient::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
+
+
+	if( !m_auth ) parsAuthPkt( buff );
+	if( !m_auth ){
+		slot_stop();
+		return;
+	}
+
+	app::setLog(0,QString("ControlClient::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
+}
+
+bool ControlClient::parsAuthPkt(QByteArray &data)
+{
+	bool res = false;
+
+	uint8_t cmd = data[0];
+	data.remove( 0, 1 );
+
+	uint16_t len = 0;
+	QByteArray login;
+	QByteArray pass;
+
+	switch( cmd ){
+		case ControlCommand::AUTH:
+			len = data[0] << 8;
+			len += data[1];
+			data.remove( 0, 2 );
+
+			login = data.left( len );
+			data.remove( 0, len );
+
+			len = data[0] << 8;
+			len += data[1];
+			data.remove( 0, 2 );
+
+			pass = data.left( len );
+			data.remove( 0, len );
+
+			app::setLog(0,QString("ControlClient::parsAuthPkt recv [%1:%2]").arg(QString(login)).arg(QString(pass)));
+
+			if( data[0] == '\0' ) res = true;
+			data.remove( 0, 1 );
+
+			if( app::chkAuth2( login, pass ) ){
+				m_user = app::getUserData( login );
+				m_auth = true;
+				app::setLog(4,QString("ControlClient::parsAuthPkt() auth success [%1]").arg(QString(login)));
+			}else{
+				app::setLog(3,QString("ControlClient::parsAuthPkt() auth error [%1:%2]").arg(QString(login)).arg(QString(pass)));
+			}
+
+		break;
+	}
+
+	return res;
+}
+
+bool ControlClient::parsAdminPkt(QByteArray &data, QByteArray &sendData)
+{
+	bool res = false;
+	uint8_t cmd = data[0];
+	data.remove( 0, 1 );
+
+	return res;
 }
