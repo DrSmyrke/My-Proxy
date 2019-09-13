@@ -71,18 +71,6 @@ void Client::slot_clientReadyRead()
 
 	// Приветствие
 	switch( pkt.version ){
-		// Добавление протокола конфигурации и отладки
-		case Client::Proto::Version::CONFIGURE:
-			// Приняли данные, распарсили и закрыли соединение!!! (Только для локалхоста)
-			if( m_pClient->peerAddress().toString() == "127.0.0.1" ){
-				stream >> pkt.cmd;
-				stream >> pkt.len;
-				pkt.rawGet = buff.mid( 3, pkt.len );
-				parsAdminPkt( pkt.cmd, pkt.rawRet, pkt.rawGet );
-				sendToClient( pkt.rawRet );
-			}
-			slot_stop();
-		break;
 		case Client::Proto::Version::SOCKS4:
 			stream >> pkt.cmd;
 			stream >> pkt.port;
@@ -391,36 +379,4 @@ void Client::parsPORT(QByteArray &data, uint16_t &port)
 	QDataStream stream(&data, QIODevice::ReadWrite);
 	stream.setByteOrder(QDataStream::BigEndian);
 	stream >> port;
-}
-
-void Client::parsAdminPkt(const uint8_t cmd, QByteArray &sendData, const QByteArray &data)
-{
-	sendData.clear();
-
-	QString str;
-	QStringList strList;
-
-	switch(cmd){
-		case 0xFF:		// Get version
-			sendData.append( app::conf.version );
-		break;
-		case 0x10:		// Get Users Info
-			for( auto user:app::conf.users ){
-				str = QString("%1	%2	%3	%4").arg( user.login ).arg( app::getUserConnectionsNum( user.login ) ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
-				strList.push_back( str );
-			}
-			sendData.append( strList.join(";") );
-		break;
-		case 0x11:		// reload settings
-			app::loadSettings();
-		break;
-		case 0x12:		// get black domains
-			for( auto addr:app::accessList.blackDomains ) strList.push_back( addr );
-			sendData.append( strList.join(";") );
-		break;
-		case 0x13:		// add black domains
-			for( auto addr:data.split(';') ) app::addGlobalBlackAddr( QString(addr) );
-		break;
-		default: break;
-	}
 }
