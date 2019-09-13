@@ -18,6 +18,7 @@ namespace app {
 		QSettings settings(app::conf.confFile, QSettings::IniFormat);
 
 		app::conf.port = settings.value("SOCKS_PROXY/port",app::conf.port).toUInt();
+		app::conf.controlPort = settings.value("SOCKS_PROXY/controlPort",app::conf.controlPort).toUInt();
 		app::conf.accessFile = settings.value("SOCKS_PROXY/accessFile",app::conf.accessFile).toString();
 		app::conf.usersFile = settings.value("SOCKS_PROXY/usersFile",app::conf.usersFile).toString();
 		app::conf.logFile = settings.value("SOCKS_PROXY/logFile",app::conf.logFile).toString();
@@ -49,6 +50,7 @@ namespace app {
 			QSettings settings(app::conf.confFile, QSettings::IniFormat);
 			settings.clear();
 			settings.setValue("SOCKS_PROXY/port",app::conf.port);
+			settings.setValue("SOCKS_PROXY/controlPort",app::conf.controlPort);
 			settings.setValue("SOCKS_PROXY/accessFile",app::conf.accessFile);
 			settings.setValue("SOCKS_PROXY/usersFile",app::conf.usersFile);
 			settings.setValue("SOCKS_PROXY/logFile",app::conf.logFile);

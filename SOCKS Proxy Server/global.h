@@ -38,6 +38,7 @@ struct Config{
 	QString usersFile					= QDir::homePath() + "/MyProxy/users.list";
 #endif
 	uint16_t port						= 7301;
+	uint16_t controlPort				= 7302;
 	bool settingsSave					= false;
 	bool usersSave						= false;
 	std::vector<User> users;

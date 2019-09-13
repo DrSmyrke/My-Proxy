@@ -4,10 +4,9 @@
 #include <QObject>
 #include <QtNetwork/QTcpServer>
 #include <QTcpSocket>
-#include <QFile>
 #include <QTimer>
-#include "client.h"
 
+#include "client.h"
 #include "global.h"
 
 class Server : public QTcpServer

@@ -1,6 +1,6 @@
 #include "server.h"
 
-Server::Server(QObject *parent)	: QTcpServer(parent)
+Server::Server(QObject *parent) : QTcpServer(parent)
 {
 	app::setLog( 0, QString("SERVER CREATING v%1 ...").arg(app::conf.version) );
 
@@ -18,12 +18,12 @@ Server::~Server()
 
 bool Server::run()
 {
-	if(!this->listen(QHostAddress::AnyIPv4,app::conf.port)){
-		app::setLog( 0, QString("SERVER [ NOT ACTIVATED ] PORT: [%1] %2").arg(app::conf.port).arg(this->errorString()) );
+	if(!this->listen( QHostAddress::AnyIPv4, app::conf.port )){
+		app::setLog( 0, QString("SERVER [ NOT ACTIVATED ] PORT: [%1] %2").arg( app::conf.port ).arg( this->errorString() ) );
 		return false;
 	}
 
-	app::setLog( 0, QString("SERVER [ ACTIVATED ] PORT: [%1]").arg(app::conf.port) );
+	app::setLog( 0, QString("SERVER [ ACTIVATED ] PORT: [%1]").arg( app::conf.port ) );
 	m_pTimer->start();
 
 	return true;

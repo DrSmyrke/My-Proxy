@@ -17,13 +17,15 @@ SOURCES += main.cpp \
     server.cpp \
     client.cpp \
     global.cpp \
-    myfunctions.cpp
+    myfunctions.cpp \
+    controlserver.cpp
 
 HEADERS += \
     server.h \
     client.h \
     global.h \
-    myfunctions.h
+    myfunctions.h \
+    controlserver.h
 
 # Check if the git version file exists
 ! include(./gitversion.pri) {
