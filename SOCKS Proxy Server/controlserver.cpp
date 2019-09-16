@@ -186,7 +186,7 @@ bool ControlClient::parsAuthPkt(QByteArray &data)
 			pass = data.left( len );
 			data.remove( 0, len );
 
-			app::setLog(0,QString("ControlClient::parsAuthPkt recv [%1:%2]").arg(QString(login)).arg(QString(pass)));
+			app::setLog(5,QString("ControlClient::parsAuthPkt recv [%1:%2]").arg(QString(login)).arg(QString(pass)));
 
 			if( data[0] == '\0' ) res = true;
 			data.remove( 0, 1 );
@@ -216,6 +216,9 @@ bool ControlClient::parsInfoPkt(QByteArray &data, QByteArray &sendData)
 
 	if( cmd != Control::INFO ) return res;
 
+	app::setLog(4,QString("ControlClient::parsInfoPkt() [%1]").arg(QString(data.toHex())));
+
+	res = true;
 	sendData.clear();
 	QString str;
 	QStringList list;

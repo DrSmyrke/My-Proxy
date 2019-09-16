@@ -29,7 +29,7 @@ public:
 			SOCKS5		= 0x05,
 		};
 	};
-	explicit Client(qintptr descriptor, QObject *parent = 0);
+	explicit Client(qintptr descriptor, QObject *parent = nullptr);
 	void run() { slot_start(); }
 signals:
 	void signal_finished();
