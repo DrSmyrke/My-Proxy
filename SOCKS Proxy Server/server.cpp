@@ -14,6 +14,7 @@ Server::~Server()
 {
 	app::setLog( 0, "SERVER DIE..." );
 	emit signal_stopAll();
+	stop();
 }
 
 bool Server::run()

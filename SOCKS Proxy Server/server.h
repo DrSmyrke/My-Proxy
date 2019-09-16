@@ -13,7 +13,7 @@ class Server : public QTcpServer
 {
 	Q_OBJECT
 public:
-	explicit Server(QObject *parent = 0);
+	explicit Server(QObject *parent = nullptr);
 	~Server();
 	bool run();
 	void stop();

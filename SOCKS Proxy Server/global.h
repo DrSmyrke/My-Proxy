@@ -13,9 +13,13 @@ struct UserGrpup{
 	};
 };
 
-struct ControlCommand{
+struct Control{
 	enum{
-		AUTH		= 0x37,
+		VERSION				= 0x01,
+		USERS				= 0x02,
+		BLACKLIST_ADDRS		= 0x03,
+		AUTH				= 0x37,
+		INFO				= 0x73,
 	};
 };
 
@@ -27,6 +31,7 @@ struct User{
 	uint32_t maxConnections = 37;
 	QStringList accessList;
 	QStringList blockList;
+	QStringList currentConnections;
 };
 
 struct Config{
@@ -62,6 +67,7 @@ struct AccessList{
 	std::vector<QHostAddress> socks4Access;
 	std::vector<QString> blackDomains;
 	std::vector<QHostAddress> blackIPs;
+	std::vector<QHostAddress> blackIPsDynamic;
 	std::vector<QString> whiteDomains;
 	std::vector<QHostAddress> whiteIPs;
 	QList< BanData > banList;
@@ -78,6 +84,7 @@ namespace app {
 	void setLog(const uint8_t logLevel, const QString &mess);
 	void addGlobalBlackAddr(const QString &str);
 	void addGlobalBlackIP(const QHostAddress &addr);
+	void addGlobalBlackIPDynamic(const QHostAddress &addr);
 	void updateBlackIPAddrs();
 	bool isBlockAddr(const QHostAddress& addr);
 	void loadAccessFile();
@@ -102,6 +109,8 @@ namespace app {
 	void updateUserLoginTimeStamp(const QString &login);
 	void updateBanList();
 	uint8_t getTimeBan(const QHostAddress &addr);
+	void addUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port);
+	void removeUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port);
 }
 
 #endif // GLOBAL_H

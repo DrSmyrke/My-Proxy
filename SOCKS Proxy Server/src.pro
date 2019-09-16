@@ -14,6 +14,7 @@ QMAKE_CXXFLAGS += "-std=c++11"
 TEMPLATE = app
 
 SOURCES += main.cpp \
+    http.cpp \
     server.cpp \
     client.cpp \
     global.cpp \
@@ -21,6 +22,7 @@ SOURCES += main.cpp \
     controlserver.cpp
 
 HEADERS += \
+    http.h \
     server.h \
     client.h \
     global.h \

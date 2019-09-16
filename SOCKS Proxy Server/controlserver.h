@@ -6,12 +6,13 @@
 #include <QTcpSocket>
 
 #include "global.h"
+#include "http.h"
 
 class ControlServer : public QTcpServer
 {
 	Q_OBJECT
 public:
-	ControlServer(QObject *parent = 0);
+	ControlServer(QObject *parent = nullptr);
 	~ControlServer();
 	bool run();
 	void stop();
@@ -38,17 +39,11 @@ private:
 	QTcpSocket* m_pClient;
 	bool m_auth;
 	User m_user;
+	QByteArray m_buff;
 
-//	void sendError(const uint8_t protoByte, const QString &errorString = QString(""), const uint8_t errorCode = 0x05, const uint8_t level = 4);
-//	void log(const QString &text);
-//	void sendToClient(const QByteArray &data);
-//	void sendToTarget(const QByteArray &data);
+	void sendToClient(const QByteArray &data);
 	bool parsAuthPkt(QByteArray &data);
-//	bool parsAuthMethods(QByteArray &data);
-//	bool parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port, QString &domainAddr);
-//	void parsIP(QByteArray &data, QHostAddress &addr);
-//	void parsPORT(QByteArray &data, uint16_t &port);
-	void parsAdminPkt(QByteArray &data, QByteArray &sendData);
+	bool parsInfoPkt(QByteArray &data, QByteArray &sendData);
 };
 
 #endif // CONTROLSERVER_H

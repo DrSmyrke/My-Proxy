@@ -45,6 +45,8 @@ private:
 	bool m_tunnel;
 	bool m_auth;
 	User m_user;
+	QHostAddress m_targetHost;
+	uint16_t m_targetPort;
 
 	void sendError(const uint8_t protoByte, const QString &errorString = QString(""), const uint8_t errorCode = 0x05, const uint8_t level = 4);
 	void log(const QString &text);

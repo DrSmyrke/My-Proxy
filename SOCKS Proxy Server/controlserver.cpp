@@ -57,6 +57,7 @@ void ControlServer::incomingConnection(qintptr socketDescriptor)
 
 ControlClient::ControlClient(qintptr descriptor, QObject *parent)
 	: QObject(parent)
+	, m_auth(false)
 {
 	app::setLog(5,QString("ControlClient::ControlClient created"));
 
@@ -93,8 +94,14 @@ void ControlClient::slot_clientReadyRead()
 		buff.append( m_pClient->read(1024) );
 	}
 
-	app::setLog(0,QString("ControlClient::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
+	app::setLog(5,QString("ControlClient::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
 
+	// Если придет запрос на получение информации
+	QByteArray ba;
+	if( parsInfoPkt( buff, ba ) ){
+		sendToClient(ba);
+		return;
+	}
 
 	if( !m_auth ) parsAuthPkt( buff );
 	if( !m_auth ){
@@ -102,14 +109,61 @@ void ControlClient::slot_clientReadyRead()
 		return;
 	}
 
-	app::setLog(0,QString("ControlClient::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
+	http::pkt pkt;
+
+	if( m_buff.size() > 0 ){
+		m_buff.append( buff );
+		pkt = http::parsPkt( m_buff );
+	}else{
+		pkt = http::parsPkt( buff );
+	}
+	if( pkt.next ){
+		m_buff.append( buff );
+		return;
+	}
+	if( pkt.valid ){
+		QByteArray ba;
+
+		ba.append( QString("Hi %1 [%2]\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ) );
+		ba.append( "============  USERS  =========================\n" );
+		for( auto user:app::conf.users ){
+			QString str = QString("%1	%2	%3	%4\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
+			ba.append( str );
+		}
+		ba.append( "============  CURRENT CONNECTIONS  ============\n" );
+		for( auto user:app::conf.users ){
+			QString str = QString("[%1]\n").arg( user.login );
+			ba.append( str );
+			for( auto elem:user.currentConnections ){
+				str = QString(" 	%1\n").arg( elem );
+				ba.append( str );
+			}
+		}
+
+		http::pkt pkt2;
+		pkt2.body.rawData.append( ba );
+		pkt2.head.response.code = 200;
+		pkt2.head.response.comment = "OK";
+
+		sendToClient( http::buildPkt( pkt2 ) );
+	}
+}
+
+void ControlClient::sendToClient(const QByteArray &data)
+{
+	if( data.size() == 0 ) return;
+	if( m_pClient->state() == QAbstractSocket::ConnectingState ) m_pClient->waitForConnected(300);
+	if( m_pClient->state() == QAbstractSocket::UnconnectedState ) return;
+	m_pClient->write(data);
+	m_pClient->waitForBytesWritten(100);
+	app::setLog(5,QString("Client::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data.toHex())));
 }
 
 bool ControlClient::parsAuthPkt(QByteArray &data)
 {
 	bool res = false;
 
-	uint8_t cmd = data[0];
+	char cmd = data[0];
 	data.remove( 0, 1 );
 
 	uint16_t len = 0;
@@ -117,7 +171,7 @@ bool ControlClient::parsAuthPkt(QByteArray &data)
 	QByteArray pass;
 
 	switch( cmd ){
-		case ControlCommand::AUTH:
+		case Control::AUTH:
 			len = data[0] << 8;
 			len += data[1];
 			data.remove( 0, 2 );
@@ -151,11 +205,39 @@ bool ControlClient::parsAuthPkt(QByteArray &data)
 	return res;
 }
 
-bool ControlClient::parsAdminPkt(QByteArray &data, QByteArray &sendData)
+bool ControlClient::parsInfoPkt(QByteArray &data, QByteArray &sendData)
 {
 	bool res = false;
-	uint8_t cmd = data[0];
-	data.remove( 0, 1 );
+
+	if( data.size() < 2 ) return res;
+
+	char cmd = data[0];
+	char param = data[1];
+
+	if( cmd != Control::INFO ) return res;
+
+	sendData.clear();
+	QString str;
+	QStringList list;
+
+	switch( param ){
+		case Control::VERSION:
+			sendData.append( app::conf.version );
+		break;
+		case Control::USERS:
+			list.clear();
+			for( auto user:app::conf.users ){
+				str = QString("%1	%2	%3	%4").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
+				list.push_back( str );
+			}
+			sendData.append( list.join( ";" ) );
+		break;
+		case Control::BLACKLIST_ADDRS:
+			list.clear();
+			for( auto addr:app::accessList.blackDomains ) list.push_back( addr );
+			sendData.append( list.join( ";" ) );
+		break;
+	}
 
 	return res;
 }

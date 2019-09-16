@@ -39,7 +39,10 @@ void Client::slot_stop()
 	if( m_pTarget->isOpen() ) m_pTarget->close();
 	if( m_pClient->isOpen() ) m_pClient->close();
 
-	if( m_auth ) app::changeUserConnection( m_user.login, -1 );
+	if( m_auth ){
+		app::changeUserConnection( m_user.login, -1 );
+		app::addUserConnection( m_user.login, m_targetHost, m_targetPort );
+	}
 
 	emit signal_finished();
 }
@@ -158,11 +161,13 @@ void Client::slot_clientReadyRead()
 	m_pTarget->connectToHost( pkt.addr, pkt.port);
 	m_pTarget->waitForConnected(3000);
 	if( m_pTarget->isOpen() ){
+		m_targetHost = pkt.addr;
+		m_targetPort = pkt.port;
 		//Send auth data from control server
 		if( pkt.addr.toString() == "127.0.0.1" && pkt.port == app::conf.controlPort && m_auth ){
 			app::setLog(4,QString("Client::Send auth data from control server"));
 			QByteArray ba;
-			ba.append( ControlCommand::AUTH );
+			ba.append( Control::AUTH );
 			ba.append( mf::toBigEndianShort( m_user.login.length() ) );
 			ba.append( m_user.login );
 			ba.append( mf::toBigEndianShort( m_user.pass.length() ) );
@@ -190,6 +195,9 @@ void Client::slot_clientReadyRead()
 		}
 		sendToClient( pkt.rawRet );
 		m_tunnel = true;
+
+		if( m_auth ) app::addUserConnection( m_user.login, m_targetHost, m_targetPort );
+
 		return;
 	}else{
 		sendError( pkt.version, "is not connected" );

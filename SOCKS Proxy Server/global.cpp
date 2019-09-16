@@ -178,6 +178,20 @@ namespace app {
 		}
 	}
 
+	void addGlobalBlackIPDynamic(const QHostAddress &addr)
+	{
+		bool find = false;
+
+		for( auto elem:app::accessList.blackIPsDynamic ){
+			if( elem == addr ){
+				find = true;
+				break;
+			}
+		}
+
+		if( !find ) app::accessList.blackIPsDynamic.push_back( addr );
+	}
+
 	void updateBlackIPAddrs()
 	{
 		app::setLog( 3, "UPDATE BLACK IP LIST..." );
@@ -187,7 +201,7 @@ namespace app {
 			app::setLog( 4, QString("GET INFO for [%1]").arg(addr) );
 			if( info.error() == QHostInfo::NoError ){
 				for(auto elem:info.addresses()){
-					app::addGlobalBlackIP( elem );
+					app::addGlobalBlackIPDynamic( elem );
 					app::setLog( 5, QString("SET IP [%1]").arg(elem.toString()) );
 				}
 			}
@@ -202,6 +216,15 @@ namespace app {
 			if( elem == addr ){
 				res = true;
 				break;
+			}
+		}
+
+		if( !res ){
+			for( auto elem:app::accessList.blackIPsDynamic ){
+				if( elem == addr ){
+					res = true;
+					break;
+				}
 			}
 		}
 
@@ -695,6 +718,37 @@ namespace app {
 		}
 
 		return res;
+	}
+
+	void addUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port)
+	{
+		QString hostStr = QString("%1:%2").arg( addr.toString() ).arg( port );
+
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				bool find = false;
+				for( auto elem:user.currentConnections ){
+					if( elem == hostStr ){
+						find = true;
+						break;
+					}
+				}
+				if( !find ) user.currentConnections.push_back( hostStr );
+				break;
+			}
+		}
+	}
+
+	void removeUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port)
+	{
+		QString hostStr = QString("%1:%2").arg( addr.toString() ).arg( port );
+
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.currentConnections.removeOne( hostStr );
+				break;
+			}
+		}
 	}
 
 }
