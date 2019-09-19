@@ -204,6 +204,12 @@ namespace app {
 		bool res = false;
 
 		for( auto elem:app::accessList.blackIPs ){
+			if( elem.ip.toString() == "0.0.0.0" ){
+				if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
+					res = true;
+					break;
+				}
+			}
 			if( elem.ip == host.ip ){
 				if( elem.port == host.port || ( elem.port == 0 || host.port == 0 ) ){
 					res = true;
@@ -214,6 +220,12 @@ namespace app {
 
 		if( !res ){
 			for( auto elem:app::accessList.blackIPsDynamic ){
+				if( elem.ip.toString() == "0.0.0.0" ){
+					if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
+						res = true;
+						break;
+					}
+				}
 				if( elem.ip == host.ip ){
 					if( elem.port == host.port || ( elem.port == 0 || host.port == 0 ) ){
 						res = true;
@@ -226,6 +238,12 @@ namespace app {
 		if( res ){
 			//Если заблокирован то проверим белый список
 			for( auto elem:app::accessList.whiteIPs ){
+				if( elem.ip.toString() == "0.0.0.0" ){
+					if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
+						res = false;
+						break;
+					}
+				}
 				if( elem.ip == host.ip ){
 					if( elem.port == host.port || ( elem.port == 0 || host.port == 0 ) ){
 						res = false;
@@ -235,7 +253,7 @@ namespace app {
 			}
 		}
 
-		app::setLog( 5, QString("isBlockHost [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( res ) );
+		app::setLog( 4, QString("isBlockHost [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( (res)?"true":"false" ) );
 
 		return res;
 	}
@@ -515,6 +533,8 @@ namespace app {
 			data.addr = addr;
 			data.sec = timeout;
 
+			app::setLog( 2, QString("add to BAN [%1] ...").arg( addr.toString() ) );
+
 			app::accessList.banList.push_back( data );
 			app::accessList.accessFileSave = true;
 			return;
@@ -632,6 +652,12 @@ namespace app {
 		bool res = false;
 
 		for( auto elem:app::getUserData( login ).blockList ){
+			if( elem.ip.toString() == "0.0.0.0" ){
+				if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
+					res = true;
+					break;
+				}
+			}
 			if( host.ip == elem.ip ){
 				if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
 					res = true;
@@ -643,6 +669,12 @@ namespace app {
 		if( res ){
 			//Если заблокирован то проверим белый список
 			for( auto elem:app::getUserData( login ).accessList ){
+				if( elem.ip.toString() == "0.0.0.0" ){
+					if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
+						res = false;
+						break;
+					}
+				}
 				if( host.ip == elem.ip ){
 					if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
 						res = false;
@@ -652,7 +684,7 @@ namespace app {
 			}
 		}
 
-		app::setLog( 5, QString("isBlockedToUser [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( res ) );
+		app::setLog( 4, QString("isBlockedToUser [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( (res)?"true":"false" ) );
 
 		return res;
 	}

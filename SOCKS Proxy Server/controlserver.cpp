@@ -251,11 +251,11 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 			content += "<hr>";
 		}
 
-		content += "============  USERS  =========================\n";
+		content += "============  USERS  =========================<br>\n";
 		for( auto user:app::conf.users ){
 			content += QString("%1	%2	%3	%4<br>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
 		}
-		content += "============  BLACK DYNAMIC  =========================\n";
+		content += "============  BLACK DYNAMIC  =========================<br>\n";
 		for( auto elem:app::accessList.blackIPsDynamic ){
 			content += QString("%1:%2<br>\n").arg( elem.ip.toString() ).arg( elem.port );
 		}
