@@ -41,7 +41,6 @@ void Client::slot_stop()
 
 	if( m_auth ){
 		app::changeUserConnection( m_user.login, -1 );
-		app::addUserConnection( m_user.login, m_targetHost, m_targetPort );
 	}
 
 	emit signal_finished();
@@ -195,8 +194,6 @@ void Client::slot_clientReadyRead()
 		}
 		sendToClient( pkt.rawRet );
 		m_tunnel = true;
-
-		if( m_auth ) app::addUserConnection( m_user.login, m_targetHost, m_targetPort );
 
 		return;
 	}else{

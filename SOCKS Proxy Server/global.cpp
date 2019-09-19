@@ -720,35 +720,4 @@ namespace app {
 		return res;
 	}
 
-	void addUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port)
-	{
-		QString hostStr = QString("%1:%2").arg( addr.toString() ).arg( port );
-
-		for( auto &user:app::conf.users ){
-			if( login == user.login ){
-				bool find = false;
-				for( auto elem:user.currentConnections ){
-					if( elem == hostStr ){
-						find = true;
-						break;
-					}
-				}
-				if( !find ) user.currentConnections.push_back( hostStr );
-				break;
-			}
-		}
-	}
-
-	void removeUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port)
-	{
-		QString hostStr = QString("%1:%2").arg( addr.toString() ).arg( port );
-
-		for( auto &user:app::conf.users ){
-			if( login == user.login ){
-				user.currentConnections.removeOne( hostStr );
-				break;
-			}
-		}
-	}
-
 }

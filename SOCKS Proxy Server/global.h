@@ -31,7 +31,6 @@ struct User{
 	uint32_t maxConnections = 37;
 	QStringList accessList;
 	QStringList blockList;
-	QStringList currentConnections;
 };
 
 struct Config{
@@ -109,8 +108,6 @@ namespace app {
 	void updateUserLoginTimeStamp(const QString &login);
 	void updateBanList();
 	uint8_t getTimeBan(const QHostAddress &addr);
-	void addUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port);
-	void removeUserConnection(const QString &login, const QHostAddress &addr, const uint16_t port);
 }
 
 #endif // GLOBAL_H

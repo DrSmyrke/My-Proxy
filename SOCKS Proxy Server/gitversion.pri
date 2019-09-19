@@ -20,4 +20,5 @@ DEFINES += APP_VER_FIRST=\\\"$$APP_VER_FIRST\\\"
 DEFINES += APP_VER_SECOND=\\\"$$APP_VER_SECOND\\\"
 
 #message($$APP_VER_FIRST)
-#message($$APP_VER_SECOND)
+#message($$APP_VER_SECOND2)
+

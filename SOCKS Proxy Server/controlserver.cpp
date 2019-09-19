@@ -130,15 +130,6 @@ void ControlClient::slot_clientReadyRead()
 			QString str = QString("%1	%2	%3	%4\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
 			ba.append( str );
 		}
-		ba.append( "============  CURRENT CONNECTIONS  ============\n" );
-		for( auto user:app::conf.users ){
-			QString str = QString("[%1]\n").arg( user.login );
-			ba.append( str );
-			for( auto elem:user.currentConnections ){
-				str = QString(" 	%1\n").arg( elem );
-				ba.append( str );
-			}
-		}
 
 		http::pkt pkt2;
 		pkt2.body.rawData.append( ba );
