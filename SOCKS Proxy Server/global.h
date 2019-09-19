@@ -6,6 +6,11 @@
 #include <QHostAddress>
 #include <vector>
 
+struct Host{
+	QHostAddress ip;
+	uint16_t port = 0;
+};
+
 struct UserGrpup{
 	enum{
 		users,
@@ -29,8 +34,8 @@ struct User{
 	uint8_t group = UserGrpup::users;
 	uint32_t lastLoginTimestamp = 0;
 	uint32_t maxConnections = 37;
-	QStringList accessList;
-	QStringList blockList;
+	std::vector<Host> accessList;
+	std::vector<Host> blockList;
 };
 
 struct Config{
@@ -64,11 +69,11 @@ struct BanData{
 
 struct AccessList{
 	std::vector<QHostAddress> socks4Access;
-	std::vector<QString> blackDomains;
-	std::vector<QHostAddress> blackIPs;
-	std::vector<QHostAddress> blackIPsDynamic;
-	std::vector<QString> whiteDomains;
-	std::vector<QHostAddress> whiteIPs;
+	QStringList blackDomains;
+	std::vector<Host> blackIPs;
+	std::vector<Host> blackIPsDynamic;
+	QStringList whiteDomains;
+	std::vector<Host> whiteIPs;
 	QList< BanData > banList;
 	bool accessFileSave = false;
 };
@@ -82,10 +87,10 @@ namespace app {
 	bool parsArgs(int argc, char *argv[]);
 	void setLog(const uint8_t logLevel, const QString &mess);
 	void addGlobalBlackAddr(const QString &str);
-	void addGlobalBlackIP(const QHostAddress &addr);
-	void addGlobalBlackIPDynamic(const QHostAddress &addr);
-	void updateBlackIPAddrs();
-	bool isBlockAddr(const QHostAddress& addr);
+	void addGlobalBlackIP(const Host &host);
+	void addGlobalBlackIPDynamic(const Host &host);
+	void updateBlackWhiteDomains();
+	bool isBlockHost(const Host &addr);
 	void loadAccessFile();
 	void saveAccessFile();
 	bool addUser(const QString &login, const QString &pass, const uint8_t group = UserGrpup::users);
@@ -99,8 +104,7 @@ namespace app {
 	bool isBlockedDomName(const QString &domName);
 	void loadUsers();
 	void saveUsers();
-	bool isBlockedUserList(const QString &login, const QString &addr);
-	bool isAccessUserList(const QString &login, const QString &addr);
+	bool isBlockedToUser(const QString &login, const Host &host);
 	void changeUserConnection(const QString &login, const int connCount);
 	uint32_t getUserConnectionsNum(const QString &login);
 	uint8_t getUserGroupFromName(const QString &name);
@@ -108,6 +112,10 @@ namespace app {
 	void updateUserLoginTimeStamp(const QString &login);
 	void updateBanList();
 	uint8_t getTimeBan(const QHostAddress &addr);
+	void getIPsFromDomName(const QString &domName, const uint16_t port, std::vector<Host> &data);
+	void getIPFromDomName(const QString &domName, Host &host);
+	void updateListFromList(const QStringList &list, std::vector<Host> &data);
+	void updateListFromList(const std::vector<Host> &data, QStringList &list);
 }
 
 #endif // GLOBAL_H

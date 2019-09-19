@@ -34,7 +34,7 @@ namespace app {
 
 		app::loadAccessFile();
 
-		app::updateBlackIPAddrs();
+		app::updateBlackWhiteDomains();
 
 		app::loadUsers();
 
@@ -161,69 +161,76 @@ namespace app {
 		}
 	}
 
-	void addGlobalBlackIP(const QHostAddress &addr)
+	void addGlobalBlackIP(const Host &host)
 	{
 		bool find = false;
 
 		for( auto elem:app::accessList.blackIPs ){
-			if( elem == addr ){
+			if( elem.ip == host.ip && elem.port == host.port ){
 				find = true;
 				break;
 			}
 		}
 
 		if( !find ){
-			app::accessList.blackIPs.push_back( addr );
+			app::accessList.blackIPs.push_back( host );
 			app::accessList.accessFileSave = true;
 		}
 	}
 
-	void addGlobalBlackIPDynamic(const QHostAddress &addr)
+	void addGlobalBlackIPDynamic(const Host &host)
 	{
 		bool find = false;
 
 		for( auto elem:app::accessList.blackIPsDynamic ){
-			if( elem == addr ){
+			if( elem.ip == host.ip && elem.port == host.port ){
 				find = true;
 				break;
 			}
 		}
 
-		if( !find ) app::accessList.blackIPsDynamic.push_back( addr );
+		if( !find ) app::accessList.blackIPsDynamic.push_back( host );
 	}
 
-	void updateBlackIPAddrs()
+	void updateBlackWhiteDomains()
 	{
 		app::setLog( 3, "UPDATE BLACK IP LIST..." );
-
-		for( auto addr:app::accessList.blackDomains ){
-			auto info = QHostInfo::fromName( addr );
-			app::setLog( 4, QString("GET INFO for [%1]").arg(addr) );
-			if( info.error() == QHostInfo::NoError ){
-				for(auto elem:info.addresses()){
-					app::addGlobalBlackIPDynamic( elem );
-					app::setLog( 5, QString("SET IP [%1]").arg(elem.toString()) );
-				}
-			}
-		}
+		app::updateListFromList( app::accessList.blackDomains, app::accessList.blackIPsDynamic );
+		app::updateListFromList( app::accessList.whiteDomains, app::accessList.whiteIPs );
 	}
 
-	bool isBlockAddr(const QHostAddress& addr)
+	bool isBlockHost(const Host& host)
 	{
 		bool res = false;
 
 		for( auto elem:app::accessList.blackIPs ){
-			if( elem == addr ){
-				res = true;
-				break;
+			if( elem.ip == host.ip ){
+				if( elem.port == host.port || ( elem.port == 0 || host.port == 0 ) ){
+					res = true;
+					break;
+				}
 			}
 		}
 
 		if( !res ){
 			for( auto elem:app::accessList.blackIPsDynamic ){
-				if( elem == addr ){
-					res = true;
-					break;
+				if( elem.ip == host.ip ){
+					if( elem.port == host.port || ( elem.port == 0 || host.port == 0 ) ){
+						res = true;
+						break;
+					}
+				}
+			}
+		}
+
+		if( res ){
+			//Если заблокирован то проверим белый список
+			for( auto elem:app::accessList.whiteIPs ){
+				if( elem.ip == host.ip ){
+					if( elem.port == host.port || ( elem.port == 0 || host.port == 0 ) ){
+						res = false;
+						break;
+					}
 				}
 			}
 		}
@@ -258,6 +265,8 @@ namespace app {
 		bool socks4Access	= false;
 		bool whiteDomains	= false;
 		bool whiteIPs		= false;
+		QStringList whiteIPsList;
+		QStringList blackIPsList;
 
 		QHostAddress addr;
 
@@ -331,16 +340,17 @@ namespace app {
 						if( addr.setAddress( QString(elem[0]) ) ) app::addBAN( addr, elem[1].toHex().toUInt( nullptr, 16 ) );
 					}
 				}
-				if( whiteIPs ){
-					if( addr.setAddress( QString(str) ) ) app::accessList.whiteIPs.push_back( addr );
-				}
-				if( blackIPs ){
-					if( addr.setAddress( QString(str) ) ) app::accessList.blackIPs.push_back( addr );
-				}
+				if( whiteIPs ) whiteIPsList.push_back( QString(str) );
+				if( blackIPs ) blackIPsList.push_back( QString(str) );
 				if( blackDomains ) app::accessList.blackDomains.push_back( str );
 				if( whiteDomains ) app::accessList.whiteDomains.push_back( str );
 			}
 			file.close();
+
+			app::updateListFromList( whiteIPsList, app::accessList.whiteIPs );
+			app::updateListFromList( blackIPsList, app::accessList.blackIPs );
+
+			app::updateBlackWhiteDomains();
 		}
 	}
 
@@ -353,6 +363,8 @@ namespace app {
 
 		app::setLog( 4, QString("SAVE ACCESS FILE [%1] ...").arg( app::conf.accessFile ) );
 
+		QStringList list;
+
 		QFile file;
 		file.setFileName( app::conf.accessFile );
 		if( file.open( QIODevice::WriteOnly ) ){
@@ -362,20 +374,18 @@ namespace app {
 				file.write("\n");
 			}
 			file.write("[WhiteAddrs]\n");
-			for( auto elem:app::accessList.whiteIPs ){
-				file.write( elem.toString().toUtf8().data() );
-				file.write("\n");
-			}
+			list.clear();
+			app::updateListFromList( app::accessList.whiteIPs, list );
+			file.write( list.join("\n").toUtf8().data() );
 			file.write("[WhiteDomains]\n");
 			for( auto elem:app::accessList.whiteDomains ){
 				file.write( elem.toUtf8().data() );
 				file.write("\n");
 			}
 			file.write("[BlackAddrs]\n");
-			for( auto elem:app::accessList.blackIPs ){
-				file.write( elem.toString().toUtf8().data() );
-				file.write("\n");
-			}
+			list.clear();
+			app::updateListFromList( app::accessList.blackIPs, list );
+			file.write( list.join("\n").toUtf8().data() );
 			file.write("[BlackDomains]\n");
 			for( auto elem:app::accessList.blackDomains ){
 				file.write( elem.toUtf8().data() );
@@ -527,6 +537,16 @@ namespace app {
 			}
 		}
 
+		if( res ){
+			// Если заблокирован, проверяем в белом списке
+			for( auto elem:app::accessList.whiteDomains ){
+				if( mf::strFind( elem, domName ) ){
+					res = true;
+					break;
+				}
+			}
+		}
+
 		return res;
 	}
 
@@ -558,8 +578,11 @@ namespace app {
 			user.group				= app::getUserGroupFromName( users.value( "group", "" ).toString() );
 			user.pass				= users.value( "password", "" ).toString();
 			user.maxConnections		= users.value( "maxConnections", 10 ).toUInt();
-			user.accessList			= users.value( "accessList", "*" ).toString().split(",");
-			user.blockList			= users.value( "blockList", "*" ).toString().split(",");
+			auto accessList			= users.value( "accessList", "*" ).toString().split(",");
+			auto blockList			= users.value( "blockList", "*" ).toString().split(",");
+
+			app::updateListFromList( accessList, user.accessList );
+			app::updateListFromList( blockList, user.blockList );
 
 			app::setLog( 5, QString("      USER PARAM [%1][%2][%3]").arg( user.group ).arg( user.pass ).arg( user.maxConnections ) );
 
@@ -587,8 +610,12 @@ namespace app {
 			users.setValue( "group", app::getUserGroupNameFromID( user.group ) );
 			users.setValue( "password", user.pass );
 			users.setValue( "maxConnections", user.maxConnections );
-			users.setValue( "accessList", user.accessList.join(",") );
-			users.setValue( "blockList", user.blockList.join(",") );
+			QStringList accessList;
+			QStringList blockList;
+			app::updateListFromList( user.accessList, accessList );
+			app::updateListFromList( user.blockList, blockList );
+			users.setValue( "accessList", accessList.join(",") );
+			users.setValue( "blockList", blockList.join(",") );
 
 			users.endGroup();
 		}
@@ -596,28 +623,28 @@ namespace app {
 		app::conf.usersSave = false;
 	}
 
-	bool isBlockedUserList(const QString &login, const QString &addr)
+	bool isBlockedToUser(const QString &login, const Host &host)
 	{
 		bool res = false;
 
 		for( auto elem:app::getUserData( login ).blockList ){
-			if( mf::strFind( elem, addr ) ){
-				res = true;
-				break;
+			if( host.ip == elem.ip ){
+				if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
+					res = true;
+					break;
+				}
 			}
 		}
 
-		return res;
-	}
-
-	bool isAccessUserList(const QString &login, const QString &addr)
-	{
-		bool res = false;
-
-		for( auto elem:app::getUserData( login ).accessList ){
-			if( mf::strFind( elem, addr ) ){
-				res = true;
-				break;
+		if( res ){
+			//Если заблокирован то проверим белый список
+			for( auto elem:app::getUserData( login ).accessList ){
+				if( host.ip == elem.ip ){
+					if( host.port == elem.port || ( host.port == 0 || elem.port == 0 ) ){
+						res = false;
+						break;
+					}
+				}
 			}
 		}
 
@@ -718,6 +745,52 @@ namespace app {
 		}
 
 		return res;
+	}
+
+	void getIPsFromDomName(const QString &domName, const uint16_t port, std::vector<Host> &data)
+	{
+		auto info = QHostInfo::fromName( domName );
+		if( info.error() == QHostInfo::NoError ){
+			for(auto elem:info.addresses()){
+				Host host;
+				host.port = port;
+				host.ip = elem;
+				data.push_back( host );
+			}
+		}
+	}
+
+	void getIPFromDomName(const QString &domName, Host &host)
+	{
+		auto info = QHostInfo::fromName( domName );
+		if( info.error() == QHostInfo::NoError ){
+			if( info.addresses().size() > 0 ){
+				host.ip = info.addresses().at( 0 );
+			}else{
+				host.ip = QHostAddress( "255.255.255.255" );
+			}
+		}
+	}
+
+	void updateListFromList(const QStringList &list, std::vector<Host> &data)
+	{
+		for( auto elem:list ){
+			auto tmp = elem.split(":");
+			QString ip = tmp[0];
+			if( ip == "*" ) ip = "0.0.0.0";
+			Host host;
+			if( tmp.size() == 2 ) host.port = tmp[1].toUShort();
+			if( !host.ip.setAddress( ip ) ){
+				app::getIPsFromDomName( ip, host.port, data );
+				continue;
+			}
+			data.push_back( host );
+		}
+	}
+
+	void updateListFromList(const std::vector<Host> &data, QStringList &list)
+	{
+		for( auto elem:data ) list.push_back( QString("%1:%2").arg( elem.ip.toString() ).arg( elem.port ) );
 	}
 
 }

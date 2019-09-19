@@ -122,9 +122,13 @@ void ControlClient::slot_clientReadyRead()
 		return;
 	}
 	if( pkt.valid ){
+
+		if( pkt.head.isRequest && pkt.head.request.target == "/reloadSettings" ) app::loadSettings();
+
 		QByteArray ba;
 
-		ba.append( QString("Hi %1 [%2]\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ) );
+		ba.append( QString("Hi %1 [%2] v%3\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ).arg( app::conf.version ) );
+		ba.append( "<hr><a href=\"/reloadSettings\">reloadSetting</a>" );
 		ba.append( "============  USERS  =========================\n" );
 		for( auto user:app::conf.users ){
 			QString str = QString("%1	%2	%3	%4\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );

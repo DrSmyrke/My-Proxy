@@ -75,12 +75,17 @@ void Client::slot_clientReadyRead()
 	switch( pkt.version ){
 		case Client::Proto::Version::SOCKS4:
 			stream >> pkt.cmd;
-			stream >> pkt.port;
+			stream >> pkt.targetHost.port;
 			stream >> pkt.ip;
 			pkt.addr.setAddress( pkt.ip );
-			app::setLog(5,QString("Client::slot_clientReadyRead [%1,%2,%3,%4] from [%5]").arg(pkt.version).arg(pkt.cmd).arg(pkt.port).arg(QHostAddress(pkt.ip).toString()).arg(m_pClient->peerAddress().toString()));
+			app::setLog(5,QString("Client::slot_clientReadyRead [%1,%2,%3,%4] from [%5]").arg(pkt.version).arg(pkt.cmd).arg(pkt.targetHost.port).arg(QHostAddress(pkt.ip).toString()).arg(m_pClient->peerAddress().toString()));
 			if( !app::isSocks4Access( m_pClient->peerAddress() ) ){
 				sendError( pkt.version, "is NOT ACCESS SOCKS4", 0, 2 );
+				return;
+			}
+			// is BAN ?
+			if( app::isBan( m_pClient->peerAddress() ) ){
+				sendError( pkt.version, QString("IP is BAN [%1 sec]").arg( app::getTimeBan( m_pClient->peerAddress() ) ), 0, 2 );
 				return;
 			}
 		break;
@@ -101,8 +106,7 @@ void Client::slot_clientReadyRead()
 			pkt.rawRet[0] = Client::Proto::Version::AUTH_LP;
 			pkt.rawRet[1] = ( m_auth ) ? 0x00 : 0x01;
 			sendToClient( pkt.rawRet );
-			return;
-		break;
+		return;
 		case Client::Proto::Version::SOCKS5:
 			// is BAN ?
 			if( app::isBan( m_pClient->peerAddress() ) ){
@@ -115,16 +119,28 @@ void Client::slot_clientReadyRead()
 
 			if( !m_auth ){
 				if( !parsAuthMethods( buff ) ){
-					pkt.rawRet[1] = 0xFF;
+					pkt.rawRet[1] = static_cast< char >( 0xFF );
 				}else{
 					pkt.rawRet[1] = 0x02;
 				}
 				sendToClient( pkt.rawRet );
 				return;
 			}else{
-				if( !parsConnectPkt( buff, pkt.addr, pkt.port, pkt.domainAddr ) ){
+				if( !parsConnectPkt( buff, pkt.addr, pkt.targetHost.port, pkt.domainAddr ) ){
 					sendError( pkt.version, QString("Pkt is not correct") );
 					return;
+				}
+				pkt.targetHost.ip = pkt.addr;
+				if( pkt.domainAddr != "" ){
+					app::getIPFromDomName( pkt.domainAddr, pkt.targetHost );
+					if( pkt.targetHost.ip.toString() == "255.255.255.255" ){
+						pkt.targetHost.ip = pkt.addr;
+					}else{
+						if( app::isBlockedDomName( pkt.domainAddr ) ){
+							sendError( pkt.version, "domainAddr is blocked" );
+							return;
+						}
+					}
 				}
 			}
 		break;
@@ -132,44 +148,34 @@ void Client::slot_clientReadyRead()
 	}
 
 
-	app::setLog(4,QString("Client::slot_clientReadyRead request connect [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.addr).toString()).arg(pkt.port));
+	app::setLog(4,QString("Client::slot_clientReadyRead request connect [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.targetHost.ip.toString()).arg(pkt.targetHost.port));
 
-	if( m_auth ){
-		bool isBlockIP = app::isBlockedUserList( m_user.login, pkt.addr.toString() );
-		bool isAccessIP = app::isAccessUserList( m_user.login, pkt.addr.toString() );
-		bool isBlockAddr = app::isBlockedUserList( m_user.login, pkt.domainAddr );
-		bool isAccessAddr = app::isAccessUserList( m_user.login, pkt.domainAddr );
-		if( (isBlockIP && !isAccessIP && !isAccessAddr) ){
-			app::setLog(4,QString("Client::slot_clientReadyRead findUserBlockIP [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.addr.toString()).arg(pkt.port));
-			sendError( pkt.version, "address is blocked" );
+	if( app::isBlockHost( pkt.targetHost ) ){
+		if( m_auth ){
+			if( app::isBlockedToUser( m_user.login, pkt.targetHost ) ){
+				app::setLog(4,QString("Client::slot_clientReadyRead findBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.targetHost.ip.toString()).arg(pkt.targetHost.port));
+				sendError( pkt.version, "address is blocked" );
+				return;
+			}
+		}else{
+			sendError( pkt.version, "ip is blocked" );
 			return;
 		}
-		if( (isBlockAddr && !isAccessIP && !isAccessAddr) ){
-			app::setLog(4,QString("Client::slot_clientReadyRead findUserBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.domainAddr).arg(pkt.port));
-			sendError( pkt.version, "address is blocked" );
-			return;
-		}
+
 	}
 
-	if( app::isBlockAddr( pkt.addr ) ){
-		app::setLog(4,QString("Client::slot_clientReadyRead findBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(QHostAddress(pkt.ip).toString()).arg(pkt.port));
-		sendError( pkt.version, "address is blocked" );
-		return;
-	}
-
-	m_pTarget->connectToHost( pkt.addr, pkt.port);
+	m_pTarget->connectToHost( pkt.targetHost.ip, pkt.targetHost.port);
 	m_pTarget->waitForConnected(3000);
 	if( m_pTarget->isOpen() ){
-		m_targetHost = pkt.addr;
-		m_targetPort = pkt.port;
+		m_targetHost = pkt.targetHost;
 		//Send auth data from control server
-		if( pkt.addr.toString() == "127.0.0.1" && pkt.port == app::conf.controlPort && m_auth ){
+		if( pkt.addr.toString() == "127.0.0.1" && pkt.targetHost.port == app::conf.controlPort && m_auth ){
 			app::setLog(4,QString("Client::Send auth data from control server"));
 			QByteArray ba;
 			ba.append( Control::AUTH );
-			ba.append( mf::toBigEndianShort( m_user.login.length() ) );
+			ba.append( mf::toBigEndianShort( static_cast< int16_t >( m_user.login.length() ) ) );
 			ba.append( m_user.login );
-			ba.append( mf::toBigEndianShort( m_user.pass.length() ) );
+			ba.append( mf::toBigEndianShort( static_cast< int16_t >( m_user.pass.length() ) ) );
 			ba.append( m_user.pass );
 			ba.append( '\0' );
 			sendToTarget( ba );
@@ -215,7 +221,7 @@ void Client::sendError(const uint8_t protoByte, const QString &errorString, cons
 	app::setLog( level, QString("Client::sendError: %1 from [%2]").arg(errorString).arg(m_pClient->peerAddress().toString()) );
 
 	QByteArray ret;
-	ret.append( protoByte );
+	ret.append( static_cast< char >(protoByte) );
 
 	switch(protoByte){
 		case Client::Proto::Version::SOCKS4:
@@ -230,7 +236,7 @@ void Client::sendError(const uint8_t protoByte, const QString &errorString, cons
 			ret[7] = 0x00;
 		break;
 		case Client::Proto::Version::SOCKS5:
-			ret.append( errorCode );
+			ret.append( static_cast< char >(errorCode) );
 			ret.append( '\0' );
 			ret.append( '\0' );
 			ret.append( '\0' );
@@ -276,12 +282,12 @@ bool Client::parsAuthPkt(QByteArray &data)
 
 	//пакет не полный
 	if( data.size() < 2 ) return res;
-	loginLen = data[1];
+	loginLen = static_cast< uint8_t >(data[1]);
 	if( data.size() < (loginLen + 2) ) return res;
 	login = data.mid( 2, loginLen );
 	data.remove( 0, (loginLen + 2) );
 	if( data.size() < 1 ) return res;
-	passLen = data[0];
+	passLen = static_cast< uint8_t >(data[0]);
 	if( data.size() < (passLen + 1) ) return res;
 	pass = data.mid( 1, loginLen );
 	res = app::chkAuth( login, pass );
@@ -305,7 +311,7 @@ bool Client::parsAuthMethods(QByteArray &data)
 
 	//пакет не полный
 	if( data.size() < 2 ) return res;
-	uint8_t numAuthMethods = data[1];
+	uint8_t numAuthMethods = static_cast< uint8_t >(data[1]);
 	//пакет не корректный
 	if( numAuthMethods < 1 ) return res;
 	if( data.size() < (numAuthMethods + 2) ) return res;
@@ -327,7 +333,7 @@ bool Client::parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port
 	//пакет не полный
 	if( data.size() < 5 ) return res;
 
-	uint8_t typeAddr = data[3];
+	uint8_t typeAddr = static_cast< uint8_t >(data[3]);
 	QByteArray ip;
 	QByteArray portBA;
 	uint8_t nameLen = 0;
@@ -344,21 +350,10 @@ bool Client::parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port
 			res = true;
 		break;
 		case 0x03:	//domain name
-			nameLen = data[4];
+			nameLen = static_cast< uint8_t >(data[4]);
 			if( data.size() < (7 + nameLen) ) return res;
 			ip = data.mid( 5, nameLen );
 			domainAddr = QString(ip);
-			info = QHostInfo::fromName( domainAddr );
-			if( info.error() == QHostInfo::NoError && !app::isBlockedDomName( domainAddr ) ){
-				for(auto elem:info.addresses()){
-					if( !app::isBlockAddr( elem ) ){
-						addr = elem;
-						break;
-					}
-				}
-			}else{
-				return res;
-			}
 			portBA = data.mid( (5 + nameLen), 2 );
 			parsPORT( portBA, port );
 			res = true;
@@ -380,7 +375,7 @@ bool Client::parsConnectPkt(QByteArray &data, QHostAddress &addr, uint16_t &port
 
 void Client::parsIP(QByteArray &data, QHostAddress &addr)
 {
-	if( data.size() == 16 ) addr.setAddress( (uint8_t*)data.data() );
+	if( data.size() == 16 ) addr.setAddress( data.data() );
 
 	uint32_t ip;
 
