@@ -116,6 +116,7 @@ namespace app {
 	void getIPFromDomName(const QString &domName, Host &host);
 	void updateListFromList(const QStringList &list, std::vector<Host> &data);
 	void updateListFromList(const std::vector<Host> &data, QStringList &list);
+	QString getHtmlPage(const QString &content);
 }
 
 #endif // GLOBAL_H

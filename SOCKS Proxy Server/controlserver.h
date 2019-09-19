@@ -44,6 +44,7 @@ private:
 	void sendToClient(const QByteArray &data);
 	bool parsAuthPkt(QByteArray &data);
 	bool parsInfoPkt(QByteArray &data, QByteArray &sendData);
+	void sendResponse(const QByteArray &data, const uint16_t code = 200);
 };
 
 #endif // CONTROLSERVER_H

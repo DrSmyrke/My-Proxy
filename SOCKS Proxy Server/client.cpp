@@ -165,7 +165,7 @@ void Client::slot_clientReadyRead()
 	}
 
 	m_pTarget->connectToHost( pkt.targetHost.ip, pkt.targetHost.port);
-	m_pTarget->waitForConnected(3000);
+	m_pTarget->waitForConnected(1000);
 	if( m_pTarget->isOpen() ){
 		m_targetHost = pkt.targetHost;
 		//Send auth data from control server

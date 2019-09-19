@@ -123,24 +123,33 @@ void ControlClient::slot_clientReadyRead()
 	}
 	if( pkt.valid ){
 
-		if( pkt.head.isRequest && pkt.head.request.target == "/reloadSettings" ) app::loadSettings();
-
-		QByteArray ba;
-
-		ba.append( QString("Hi %1 [%2] v%3\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ).arg( app::conf.version ) );
-		ba.append( "<hr><a href=\"/reloadSettings\">reloadSetting</a>" );
-		ba.append( "============  USERS  =========================\n" );
-		for( auto user:app::conf.users ){
-			QString str = QString("%1	%2	%3	%4\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
-			ba.append( str );
+		if( pkt.head.isRequest && pkt.head.request.target == "/reloadSettings" ){
+			app::loadSettings();
+			QString content = "<script>document.location.href=\"/\";</script><meta http-equiv=\"Refresh\" content=\"0; URL=/\">";
+			sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
+			return;
 		}
 
-		http::pkt pkt2;
-		pkt2.body.rawData.append( ba );
-		pkt2.head.response.code = 200;
-		pkt2.head.response.comment = "OK";
 
-		sendToClient( http::buildPkt( pkt2 ) );
+		QString content;
+
+		content += QString("Hi %1 [%2] v%3\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ).arg( app::conf.version );
+		content += "<hr>";
+		if( m_user.group == UserGrpup::admins ){
+			content += "<a href=\"/reloadSettings\">reloadSetting</a>";
+			content += "<hr>";
+		}
+
+		content += "============  USERS  =========================\n";
+		for( auto user:app::conf.users ){
+			content += QString("%1	%2	%3	%4<br>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
+		}
+		content += "============  BLACK DYNAMIC  =========================\n";
+		for( auto elem:app::accessList.blackIPsDynamic ){
+			content += QString("%1:%2<br>\n").arg( elem.ip.toString() ).arg( elem.port );
+		}
+
+		sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
 	}
 }
 
@@ -238,4 +247,14 @@ bool ControlClient::parsInfoPkt(QByteArray &data, QByteArray &sendData)
 	}
 
 	return res;
+}
+
+void ControlClient::sendResponse(const QByteArray &data, const uint16_t code)
+{
+	http::pkt pkt;
+	pkt.body.rawData.append( data );
+	pkt.head.response.code = code;
+	pkt.head.response.comment = "OK";
+
+	sendToClient( http::buildPkt( pkt ) );
 }

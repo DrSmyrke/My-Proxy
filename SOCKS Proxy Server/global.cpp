@@ -235,6 +235,8 @@ namespace app {
 			}
 		}
 
+		app::setLog( 5, QString("isBlockHost [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( res ) );
+
 		return res;
 	}
 
@@ -547,6 +549,8 @@ namespace app {
 			}
 		}
 
+		app::setLog( 5, QString("isBlockedDomName [%1] [%2]").arg( domName ).arg( res ) );
+
 		return res;
 	}
 
@@ -647,6 +651,8 @@ namespace app {
 				}
 			}
 		}
+
+		app::setLog( 5, QString("isBlockedToUser [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( res ) );
 
 		return res;
 	}
@@ -752,6 +758,7 @@ namespace app {
 		auto info = QHostInfo::fromName( domName );
 		if( info.error() == QHostInfo::NoError ){
 			for(auto elem:info.addresses()){
+				app::setLog( 4, QString("getIPsFromDomName found ip [%1] ...").arg( elem.toString() ) );
 				Host host;
 				host.port = port;
 				host.ip = elem;
@@ -778,12 +785,21 @@ namespace app {
 			auto tmp = elem.split(":");
 			QString ip = tmp[0];
 			if( ip == "*" ) ip = "0.0.0.0";
+			app::setLog( 4, QString("Update list ips [%1] ...").arg( elem ) );
 			Host host;
-			if( tmp.size() == 2 ) host.port = tmp[1].toUShort();
+			if( tmp.size() == 2 ){
+				if( tmp[1] == "*" || tmp[1] == "0" ){
+					host.port = 0;
+				}else{
+					host.port = tmp[1].toUShort();
+				}
+			}
 			if( !host.ip.setAddress( ip ) ){
+				app::setLog( 4, QString("Update list ips is domainName [%1]").arg( host.port ) );
 				app::getIPsFromDomName( ip, host.port, data );
 				continue;
 			}
+			app::setLog( 4, QString("Update list ips added [%1:%2] ...").arg( host.ip.toString() ).arg( host.port ) );
 			data.push_back( host );
 		}
 	}
@@ -791,6 +807,25 @@ namespace app {
 	void updateListFromList(const std::vector<Host> &data, QStringList &list)
 	{
 		for( auto elem:data ) list.push_back( QString("%1:%2").arg( elem.ip.toString() ).arg( elem.port ) );
+	}
+
+	QString getHtmlPage(const QString &content)
+	{
+		QString str;
+
+		str += "<!DOCTYPE html><html lang=\"en\">";
+		str += "<head>";
+		str += "<meta charset=\"utf-8\"/>";
+		str += "<title>-= Proxy Server service page =-</title>";
+		str += "</head>";
+		str += "<body>";
+
+		str += content;
+
+		str += "</body>";
+		str += "</html>";
+
+		return str;
 	}
 
 }
