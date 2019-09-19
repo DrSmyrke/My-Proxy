@@ -45,6 +45,7 @@ private:
 	bool parsAuthPkt(QByteArray &data);
 	bool parsInfoPkt(QByteArray &data, QByteArray &sendData);
 	void sendResponse(const QByteArray &data, const uint16_t code = 200);
+	void processingRequest(const http::pkt &pkt);
 };
 
 #endif // CONTROLSERVER_H
