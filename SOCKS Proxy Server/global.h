@@ -123,6 +123,7 @@ namespace app {
 	QString getHtmlPage(const QString &content);
 	void addBytesInTraffic(const QString &login, const uint32_t bytes = 0);
 	void addBytesOutTraffic(const QString &login, const uint32_t bytes = 0);
+	void updateInOutTraffic(const QString &login, uint32_t &inBytes, uint32_t &outBytes);
 }
 
 #endif // GLOBAL_H

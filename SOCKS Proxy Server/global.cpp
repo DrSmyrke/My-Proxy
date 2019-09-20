@@ -601,7 +601,9 @@ namespace app {
 			user.login				= group;
 			user.group				= app::getUserGroupFromName( users.value( "group", "" ).toString() );
 			user.pass				= users.value( "password", "" ).toString();
-			user.maxConnections		= users.value( "maxConnections", 10 ).toUInt();
+			user.maxConnections		= users.value( "maxConnections", user.maxConnections ).toUInt();
+			user.inBytesMax			= users.value( "inBytesMax", user.inBytesMax ).toUInt();
+			user.outBytesMax		= users.value( "outBytesMax", user.outBytesMax ).toUInt();
 			auto accessList			= users.value( "accessList", "*" ).toString().split(",");
 			auto blockList			= users.value( "blockList", "*" ).toString().split(",");
 
@@ -640,6 +642,8 @@ namespace app {
 			app::updateListFromList( user.blockList, blockList );
 			users.setValue( "accessList", accessList.join(",") );
 			users.setValue( "blockList", blockList.join(",") );
+			users.setValue( "inBytesMax", user.inBytesMax );
+			users.setValue( "outBytesMax", user.outBytesMax );
 
 			users.endGroup();
 		}
@@ -877,6 +881,17 @@ namespace app {
 		for( auto &user:app::conf.users ){
 			if( login == user.login ){
 				user.outBytes += bytes;
+				break;
+			}
+		}
+	}
+
+	void updateInOutTraffic(const QString &login, uint32_t &inBytes, uint32_t &outBytes)
+	{
+		for( auto user:app::conf.users ){
+			if( login == user.login ){
+				inBytes = user.inBytes;
+				outBytes = user.outBytes;
 				break;
 			}
 		}

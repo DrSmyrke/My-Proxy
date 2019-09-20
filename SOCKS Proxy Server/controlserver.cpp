@@ -244,7 +244,16 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 
 		QString content;
 
-		content += QString("Hi %1 [%2] v%3\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ).arg( app::conf.version );
+		content += QString("Hi %1 [%2] v%3<br>\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ).arg( app::conf.version );
+		if( m_user.outBytes >= m_user.outBytesMax ){
+			content += "<h2>Outgoing traffic has ended :(</h2><br>\n";
+		}
+		if( m_user.inBytes >= m_user.inBytesMax ){
+			content += "<h2>Incoming traffic has ended :(</h2><br>\n";
+		}
+		content += "============  TRAFFIC  =========================<br>\n";
+		content += QString("OUT: %1 / %2<br>\n").arg( mf::getSize( m_user.outBytes ) ).arg( mf::getSize( m_user.outBytesMax ) );
+		content += QString("IN:  %1 / %2<br>\n").arg( mf::getSize( m_user.inBytes ) ).arg( mf::getSize( m_user.inBytesMax ) );
 		content += "<hr>";
 		if( m_user.group == UserGrpup::admins ){
 			content += "<a href=\"/reloadSettings\">reloadSetting</a>";
@@ -255,10 +264,10 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 		for( auto user:app::conf.users ){
 			content += QString("%1	%2/%3 in:[%4/%5] out:[%6/%7]	%8<br>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.inBytesMax ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.outBytesMax ) ).arg( user.lastLoginTimestamp );
 		}
-		content += "============  BLACK DYNAMIC  =========================<br>\n";
-		for( auto elem:app::accessList.blackIPsDynamic ){
-			content += QString("%1:%2<br>\n").arg( elem.ip.toString() ).arg( elem.port );
-		}
+		//content += "============  BLACK DYNAMIC  =========================<br>\n";
+		//for( auto elem:app::accessList.blackIPsDynamic ){
+		//	content += QString("%1:%2<br>\n").arg( elem.ip.toString() ).arg( elem.port );
+		//}
 
 		sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
 	}else{

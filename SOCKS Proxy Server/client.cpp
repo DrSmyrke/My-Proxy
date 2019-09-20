@@ -56,7 +56,9 @@ void Client::slot_clientReadyRead()
 		buff.append( m_pClient->read(1024) );
 		if( m_pTarget->isOpen() && m_tunnel ){
 			sendToTarget( buff );
-			if( m_auth ) app::addBytesOutTraffic( m_user.login, buff.size() );
+			//TODO: Переделать лог
+			app::setLog(5,QString("Client::slot_targetReadyRead [%1:%2]").arg(m_pTarget->peerAddress().toString()).arg(m_pTarget->peerPort()));
+			if( m_auth && (m_pTarget->peerAddress().toString() != "127.0.0.1" && m_pTarget->peerPort() != app::conf.controlPort) ) app::addBytesOutTraffic( m_user.login, buff.size() );
 			buff.clear();
 		}
 	}
@@ -166,7 +168,15 @@ void Client::slot_clientReadyRead()
 
 //	}
 
-	m_pTarget->connectToHost( pkt.targetHost.ip, pkt.targetHost.port);
+	if( m_auth ){
+		app::updateInOutTraffic( m_user.login, m_user.inBytes, m_user.outBytes );
+		if( m_user.outBytes >= m_user.outBytesMax ){
+			pkt.targetHost.ip.setAddress( "127.0.0.1" );
+			pkt.targetHost.port = app::conf.controlPort;
+		}
+	}
+
+	m_pTarget->connectToHost( pkt.targetHost.ip, pkt.targetHost.port );
 	m_pTarget->waitForConnected(1000);
 	if( m_pTarget->isOpen() ){
 		m_targetHost = pkt.targetHost;
@@ -219,7 +229,7 @@ void Client::slot_targetReadyRead()
 		QByteArray buff;
 		buff.append( m_pTarget->read( 1024 ) );
 		sendToClient( buff );
-		if( m_auth ) app::addBytesInTraffic( m_user.login, buff.size() );
+		if( m_auth && (m_pTarget->peerAddress().toString() != "127.0.0.1" && m_pTarget->peerPort() != app::conf.controlPort) ) app::addBytesInTraffic( m_user.login, buff.size() );
 	}
 }
 
