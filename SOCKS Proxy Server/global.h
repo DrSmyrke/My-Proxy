@@ -32,10 +32,14 @@ struct User{
 	QString login;
 	QString pass;
 	uint8_t group = UserGrpup::users;
-	uint32_t lastLoginTimestamp = 0;
-	uint32_t maxConnections = 37;
+	uint32_t lastLoginTimestamp			= 0;
+	uint32_t maxConnections				= 37;
 	std::vector<Host> accessList;
 	std::vector<Host> blockList;
+	uint32_t inBytes					= 0;
+	uint32_t inBytesMax					= 1073741824;
+	uint32_t outBytes					= 0;
+	uint32_t outBytesMax				= 1073741824;
 };
 
 struct Config{
@@ -117,6 +121,8 @@ namespace app {
 	void updateListFromList(const QStringList &list, std::vector<Host> &data);
 	void updateListFromList(const std::vector<Host> &data, QStringList &list);
 	QString getHtmlPage(const QString &content);
+	void addBytesInTraffic(const QString &login, const uint32_t bytes = 0);
+	void addBytesOutTraffic(const QString &login, const uint32_t bytes = 0);
 }
 
 #endif // GLOBAL_H

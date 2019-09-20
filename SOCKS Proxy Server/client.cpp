@@ -56,6 +56,7 @@ void Client::slot_clientReadyRead()
 		buff.append( m_pClient->read(1024) );
 		if( m_pTarget->isOpen() && m_tunnel ){
 			sendToTarget( buff );
+			if( m_auth ) app::addBytesOutTraffic( m_user.login, buff.size() );
 			buff.clear();
 		}
 	}
@@ -136,10 +137,10 @@ void Client::slot_clientReadyRead()
 					if( pkt.targetHost.ip.toString() == "255.255.255.255" ){
 						pkt.targetHost.ip = pkt.addr;
 					}else{
-						if( app::isBlockedDomName( pkt.domainAddr ) ){
-							sendError( pkt.version, "domainAddr is blocked" );
-							return;
-						}
+						//if( app::isBlockedDomName( pkt.domainAddr ) ){
+						//	sendError( pkt.version, "domainAddr is blocked" );
+						//	return;
+						//}
 					}
 				}
 			}
@@ -150,19 +151,20 @@ void Client::slot_clientReadyRead()
 
 	app::setLog(4,QString("Client::slot_clientReadyRead request connect [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.targetHost.ip.toString()).arg(pkt.targetHost.port));
 
-	if( app::isBlockHost( pkt.targetHost ) ){
-		if( m_auth ){
-			if( app::isBlockedToUser( m_user.login, pkt.targetHost ) ){
-				app::setLog(4,QString("Client::slot_clientReadyRead findBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.targetHost.ip.toString()).arg(pkt.targetHost.port));
-				sendError( pkt.version, "address is blocked" );
-				return;
-			}
-		}else{
-			sendError( pkt.version, "ip is blocked" );
-			return;
-		}
+//	if( app::isBlockHost( pkt.targetHost ) ){
+//		app::setLog(4,QString("Client::slot_clientReadyRead findBlockAddr [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.targetHost.ip.toString()).arg(pkt.targetHost.port));
+//		if( m_auth ){
+//			if( app::isBlockedToUser( m_user.login, pkt.targetHost ) ){
+//				app::setLog(4,QString("Client::slot_clientReadyRead findBlockAddr USR [%1]->[%2:%3]").arg(m_pClient->peerAddress().toString()).arg(pkt.targetHost.ip.toString()).arg(pkt.targetHost.port));
+//				sendError( pkt.version, "address is blocked" );
+//				return;
+//			}
+//		}else{
+//			sendError( pkt.version, "ip is blocked" );
+//			return;
+//		}
 
-	}
+//	}
 
 	m_pTarget->connectToHost( pkt.targetHost.ip, pkt.targetHost.port);
 	m_pTarget->waitForConnected(1000);
@@ -213,7 +215,12 @@ void Client::slot_clientReadyRead()
 void Client::slot_targetReadyRead()
 {
 	if( !m_pTarget->isReadable()) m_pTarget->waitForReadyRead(300);
-	while( m_pTarget->bytesAvailable() ) sendToClient( m_pTarget->read( 1024 ) );
+	while( m_pTarget->bytesAvailable() ){
+		QByteArray buff;
+		buff.append( m_pTarget->read( 1024 ) );
+		sendToClient( buff );
+		if( m_auth ) app::addBytesInTraffic( m_user.login, buff.size() );
+	}
 }
 
 void Client::sendError(const uint8_t protoByte, const QString &errorString, const uint8_t errorCode, const uint8_t level)

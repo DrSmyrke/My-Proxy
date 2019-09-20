@@ -860,4 +860,26 @@ namespace app {
 		return str;
 	}
 
+	void addBytesInTraffic(const QString &login, const uint32_t bytes)
+	{
+		if( bytes == 0 ) return;
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.inBytes += bytes;
+				break;
+			}
+		}
+	}
+
+	void addBytesOutTraffic(const QString &login, const uint32_t bytes)
+	{
+		if( bytes == 0 ) return;
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.outBytes += bytes;
+				break;
+			}
+		}
+	}
+
 }

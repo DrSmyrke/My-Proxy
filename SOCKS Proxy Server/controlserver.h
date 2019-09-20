@@ -6,6 +6,7 @@
 #include <QTcpSocket>
 
 #include "global.h"
+#include "myfunctions.h"
 #include "http.h"
 
 class ControlServer : public QTcpServer
