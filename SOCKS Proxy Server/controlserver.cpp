@@ -220,58 +220,124 @@ bool ControlClient::parsInfoPkt(QByteArray &data, QByteArray &sendData)
 	return res;
 }
 
-void ControlClient::sendResponse(const QByteArray &data, const uint16_t code)
+void ControlClient::sendRawResponse(const uint16_t code, const QString &comment, const QString &data, const QString &mimeType)
 {
 	http::pkt pkt;
-	pkt.body.rawData.append( data );
 	pkt.head.response.code = code;
-	pkt.head.response.comment = "OK";
+	pkt.head.response.comment = comment;
+	if( !mimeType.isEmpty() ) pkt.head.contType = mimeType;
+	pkt.body.rawData.append( data );
+	app::setLog( 4, QString("ControlClient::sendRawResponse [%1]").arg(pkt.head.response.code) );
+	sendToClient( http::buildPkt(pkt) );
+}
 
-	sendToClient( http::buildPkt( pkt ) );
+void ControlClient::sendResponse(const uint16_t code, const QString &comment)
+{
+	http::pkt pkt;
+	pkt.head.response.code = code;
+	pkt.head.response.comment = comment;
+	pkt.body.rawData.append( app::getHtmlPage("Service page",comment.toLatin1()) );
+	app::setLog( 4, QString("ControlClient::sendResponse [%1]").arg(pkt.head.response.code) );
+	sendToClient( http::buildPkt(pkt) );
 }
 
 void ControlClient::processingRequest(const http::pkt &pkt)
 {
-	if( m_auth ){
-		if( m_user.group == UserGrpup::admins ){
-			if( pkt.head.isRequest && pkt.head.request.target == "/reloadSettings" ){
-				app::loadSettings();
-				QString content = "<script>document.location.href=\"/\";</script><meta http-equiv=\"Refresh\" content=\"0; URL=/\">";
-				sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
-				return;
-			}
-		}
+	bool error = true;
 
-		QString content;
-
-		content += QString("Hi %1 [%2] v%3<br>\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ).arg( app::conf.version );
-		if( m_user.outBytes >= m_user.outBytesMax ){
-			content += "<h2>Outgoing traffic has ended :(</h2><br>\n";
-		}
-		if( m_user.inBytes >= m_user.inBytesMax ){
-			content += "<h2>Incoming traffic has ended :(</h2><br>\n";
-		}
-		content += "============  TRAFFIC  =========================<br>\n";
-		content += QString("OUT: %1 / %2<br>\n").arg( mf::getSize( m_user.outBytes ) ).arg( mf::getSize( m_user.outBytesMax ) );
-		content += QString("IN:  %1 / %2<br>\n").arg( mf::getSize( m_user.inBytes ) ).arg( mf::getSize( m_user.inBytesMax ) );
-		content += "<hr>";
-		if( m_user.group == UserGrpup::admins ){
-			content += "<a href=\"/reloadSettings\">reloadSetting</a>";
-			content += "<hr>";
-		}
-
-		content += "============  USERS  =========================<br>\n";
-		for( auto user:app::conf.users ){
-			content += QString("%1	%2/%3 in:[%4/%5] out:[%6/%7]	%8<br>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.inBytesMax ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.outBytesMax ) ).arg( user.lastLoginTimestamp );
-		}
-		//content += "============  BLACK DYNAMIC  =========================<br>\n";
-		//for( auto elem:app::accessList.blackIPsDynamic ){
-		//	content += QString("%1:%2<br>\n").arg( elem.ip.toString() ).arg( elem.port );
-		//}
-
-		sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
-	}else{
-		QString content = "You are not auth!!! :(";
-		sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
+	if( pkt.head.request.target == "/buttons.css" ){
+		sendRawResponse( 200, "OK", app::conf.page.buttonsCSS, "text/css; charset=utf-8" );
+		error = false;
 	}
+	if( pkt.head.request.target == "/color.css" ){
+		sendRawResponse( 200, "OK", app::conf.page.colorCSS, "text/css; charset=utf-8" );
+		error = false;
+	}
+	if( pkt.head.request.target == "/index.js" ){
+		sendRawResponse( 200, "OK", app::conf.page.indexJS, "application/javascript; charset=utf-8" );
+		error = false;
+	}
+	if( pkt.head.request.target == "/index.css" ){
+		sendRawResponse( 200, "OK", app::conf.page.indexCSS, "text/css; charset=utf-8" );
+		error = false;
+	}
+	if( pkt.head.request.target == "/down-arrow.png" ){
+		sendRawResponse( 200, "OK", app::conf.page.downArrowIMG, "image/png" );
+		error = false;
+	}
+	if( pkt.head.request.target == "/up-arrow.png" ){
+		sendRawResponse( 200, "OK", app::conf.page.upArrowIMG, "image/png" );
+		error = false;
+	}
+	if( pkt.head.request.target == "/" ){
+		sendRawResponse( 200, "OK", app::getHtmlPage( "Index", app::conf.page.index ), "text/html; charset=utf-8" );
+		error = false;
+	}
+	if( pkt.head.request.target == "/state" ){
+		sendRawResponse( 200, "OK", app::getHtmlPage( "State", app::conf.page.state ), "text/html; charset=utf-8" );
+		error = false;
+	}
+	if( pkt.head.request.target == "/admin" ){
+		sendRawResponse( 200, "OK", app::getHtmlPage( "Admin", app::conf.page.admin ), "text/html; charset=utf-8" );
+		error = false;
+	}
+	if( pkt.head.request.target.indexOf("/get?",Qt::CaseInsensitive) == 0 or pkt.head.request.target.indexOf("/set?",Qt::CaseInsensitive) == 0 ){
+		QMap<QByteArray, QByteArray> args;
+		http::parsArguments( pkt.head.request.target, args );
+		auto response = app::processingRequest( pkt.head.request.method, args, m_user );
+		if( response.size() == 0 ){
+			sendRawResponse( 404, "Not found", "", "text/html; charset=utf-8" );
+		}else{
+			sendRawResponse( 200, "OK", response, "text/html; charset=utf-8" );
+		}
+		error = false;
+	}
+
+	if( error ) sendResponse( 502, "<h1>Bad Gateway</h1>" );
+
+
+//	if( m_auth ){
+//		if( m_user.group == UserGrpup::admins ){
+//			if( pkt.head.isRequest && pkt.head.request.target == "/reloadSettings" ){
+//				app::loadSettings();
+//				QString content = "<script>document.location.href=\"/\";</script><meta http-equiv=\"Refresh\" content=\"0; URL=/\">";
+//				sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
+//				return;
+//			}
+//		}
+
+
+
+//		QString content;
+
+//		content += QString("Hi %1 [%2] v%3<br>\n").arg( m_user.login ).arg( app::getUserGroupNameFromID( m_user.group ) ).arg( app::conf.version );
+//		if( m_user.outBytes >= m_user.outBytesMax ){
+//			content += "<h2>Outgoing traffic has ended :(</h2><br>\n";
+//		}
+//		if( m_user.inBytes >= m_user.inBytesMax ){
+//			content += "<h2>Incoming traffic has ended :(</h2><br>\n";
+//		}
+//		content += "============  TRAFFIC  =========================<br>\n";
+//		content += QString("OUT: %1 / %2<br>\n").arg( mf::getSize( m_user.outBytes ) ).arg( mf::getSize( m_user.outBytesMax ) );
+//		content += QString("IN:  %1 / %2<br>\n").arg( mf::getSize( m_user.inBytes ) ).arg( mf::getSize( m_user.inBytesMax ) );
+//		content += "<hr>";
+//		if( m_user.group == UserGrpup::admins ){
+//			content += "<a href=\"/reloadSettings\">reloadSetting</a>";
+//			content += "<hr>";
+//		}
+
+//		content += "============  USERS  =========================<br>\n";
+//		for( auto user:app::conf.users ){
+//			content += QString("%1	%2/%3 in:[%4/%5] out:[%6/%7]	%8<br>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.inBytesMax ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.outBytesMax ) ).arg( user.lastLoginTimestamp );
+//		}
+//		//content += "============  BLACK DYNAMIC  =========================<br>\n";
+//		//for( auto elem:app::accessList.blackIPsDynamic ){
+//		//	content += QString("%1:%2<br>\n").arg( elem.ip.toString() ).arg( elem.port );
+//		//}
+
+//		sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
+//	}else{
+//		QString content = "You are not auth!!! :(";
+//		sendResponse( app::getHtmlPage( content ).toUtf8(), 200 );
+//	}
 }

@@ -42,6 +42,22 @@ struct User{
 	uint32_t outBytesMax				= 1073741824;
 };
 
+struct HtmlPage{
+	QByteArray top;
+	QByteArray bottom;
+	QByteArray menu;
+	QByteArray indexJS;
+	QByteArray colorCSS;
+	QByteArray buttonsCSS;
+	QByteArray indexCSS;
+	QByteArray admin;
+	QByteArray state;
+	QByteArray config;
+	QByteArray index;
+	QByteArray downArrowIMG;
+	QByteArray upArrowIMG;
+};
+
 struct Config{
 	bool verbose						= false;
 	uint8_t logLevel					= 3;
@@ -64,6 +80,7 @@ struct Config{
 	std::map<QString,uint32_t> usersConnections;
 	QByteArray realmString				= "ProxyAuth";
 	QString version;
+	HtmlPage page;
 };
 
 struct BanData{
@@ -124,6 +141,9 @@ namespace app {
 	void addBytesInTraffic(const QString &login, const uint32_t bytes = 0);
 	void addBytesOutTraffic(const QString &login, const uint32_t bytes = 0);
 	void updateInOutTraffic(const QString &login, uint32_t &inBytes, uint32_t &outBytes);
+	QByteArray processingRequest(const QString &method, const QMap< QByteArray, QByteArray > &args, const User &userData);
+	void loadResource(const QString &fileName, QByteArray &data);
+	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content);
 }
 
 #endif // GLOBAL_H

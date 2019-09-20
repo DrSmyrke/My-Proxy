@@ -38,6 +38,20 @@ namespace app {
 
 		app::loadUsers();
 
+		if( app::conf.page.top.size() == 0 )			app::loadResource( ":/assets/top.html", app::conf.page.top );
+		if( app::conf.page.bottom.size() == 0 )			app::loadResource( ":/assets/bottom.html", app::conf.page.bottom );
+		if( app::conf.page.menu.size() == 0 )			app::loadResource( ":/assets/menu.html", app::conf.page.menu );
+		if( app::conf.page.index.size() == 0 )			app::loadResource( ":/assets/index.html", app::conf.page.index );
+
+		if( app::conf.page.buttonsCSS.size() == 0 )		app::loadResource( ":/assets/buttons.css", app::conf.page.buttonsCSS );
+		if( app::conf.page.colorCSS.size() == 0 )		app::loadResource( ":/assets/color.css", app::conf.page.colorCSS );
+		if( app::conf.page.indexCSS.size() == 0 )		app::loadResource( ":/assets/index.css", app::conf.page.indexCSS );
+
+		if( app::conf.page.indexJS.size() == 0 )		app::loadResource( ":/assets/index.js", app::conf.page.indexJS );
+
+		if( app::conf.page.downArrowIMG.size() == 0 )	app::loadResource( ":/assets/down-arrow.png", app::conf.page.downArrowIMG );
+		if( app::conf.page.upArrowIMG.size() == 0 )		app::loadResource( ":/assets/up-arrow.png", app::conf.page.upArrowIMG );
+
 		if( settings.allKeys().size() == 0 ) app::conf.settingsSave = true;
 	}
 
@@ -895,6 +909,127 @@ namespace app {
 				break;
 			}
 		}
+	}
+
+	QByteArray processingRequest(const QString &method, const QMap<QByteArray, QByteArray> &args, const User &userData)
+	{
+		QByteArray ba;
+
+//		if( method == "get" ){
+//			ba.append("content:>:");
+//			for( auto type:args ){
+//				for( auto value:type.second ){
+//					//qDebug()<<type.first<<value<<method;
+//					//"con" "globalBlockedUrls" "get"
+//					if( type.first == "con" && value == "globalBlockedUrls" ){
+//						ba.append("globalBlockedUrls:>:");
+//						ba.append("<table>");
+//						for( auto elem:app::blackList.urls ){
+//							ba.append("<tr>");
+//							ba.append( QString("<td>" + elem + "</td>") );
+//							ba.append("</tr>");
+//						}
+//						ba.append("</table>");
+//					}
+//					if( type.first == "con" && value == "globalBlockedAddrs" ){
+//						ba.append("globalBlockedAddrs:>:");
+//						ba.append("<table>");
+//						for( auto elem:app::blackList.addrs ){
+//							ba.append("<tr>");
+//							ba.append( QString("<td>" + elem + "</td>") );
+//							ba.append("</tr>");
+//						}
+//						ba.append("</table>");
+//					}
+//					if( type.first == "con" && value == "threads" ){
+//						ba.append("threads:>:");
+//						ba.append("<table>");
+//						for( uint8_t i = 0; i < app::state.threads.size(); i++ ){
+//							ba.append("<tr>");
+//							ba.append( QString("<td>Thread #" + QString::number( i ) + ":</td><td>" + QString::number( app::state.threads.at( i ) ) + " / " + QString::number( app::conf.maxClients ) + "</td>") );
+//							ba.append("</tr>");
+//						}
+//						ba.append("</table>");
+//					}
+//					if( type.first == "con" && value == "openUrls" ){
+//						ba.append("openUrls:>:");
+//						ba.append("<table>");
+//						for( auto url:app::state.urls ){
+//							ba.append("<tr>");
+//							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"addToGlobalBlockUrl\" onClick=\"action('addToGlobalBlockUrl','" + url + "');\">" : "";
+//							ba.append( QString("<td>" + url + "</td><td>" + adminB + "</td></td>") );
+//							ba.append("</tr>");
+//						}
+//						ba.append("</table>");
+//					}
+//					if( type.first == "con" && value == "openAddrs" ){
+//						ba.append("openAddrs:>:");
+//						ba.append("<table>");
+//						for( auto addr:app::state.addrs ){
+//							ba.append("<tr>");
+//							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"addToGlobalBlockAddr\" onClick=\"action('addToGlobalBlockAddr','" + addr + "');\">" : "";
+//							ba.append( QString("<td>" + addr + "</td><td>" + adminB + "</td></td>") );
+//							ba.append("</tr>");
+//						}
+//						ba.append("</table>");
+//					}
+//					if( type.first == "con" && value == "users" ){
+//						ba.append("users:>:");
+//						QDateTime dt = QDateTime::currentDateTime();
+//						ba.append("<table>");
+//						for( auto user:app::conf.users ){
+//							uint32_t lastLoginSec = dt.toTime_t() - user.lastLoginTimestamp;
+//							ba.append("<tr>");
+//							ba.append( QString("<td>" + user.login + "</td><td> " + QString::number( lastLoginSec ) + " sec. ago</td>") );
+//							ba.append( QString("<td> " + QString::number( user.connections ) + " / " + QString::number( user.maxConnections ) + "</td>") );
+//							ba.append("</tr>");
+//						}
+//						ba.append("</table>");
+//					}
+//				}
+//			}
+//		}
+
+//		if( method == "set" ){
+//			ba.append("OK");
+//			if( args.count("param") > 0 && args.count("value") ){
+//				auto param = args.at("param")[0];
+//				auto value = args.at("value");
+//				if( param == "addToGlobalBlockUrl" && userData.group == UserGrpup::admins ){
+//					for( auto elem:value ) app::addGlobalBlackUrl( elem );
+//				}
+//				if( param == "addToGlobalBlockAddr" && userData.group == UserGrpup::admins ){
+//					for( auto elem:value ) app::addGlobalBlackAddr( elem );
+//				}
+//			}
+//		}
+
+		return ba;
+	}
+
+	void loadResource(const QString &fileName, QByteArray &data)
+	{
+		data.clear();
+		QFile file;
+
+		file.setFileName( fileName );
+		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
+			while (!file.atEnd()) data.append( file.readAll() );
+			file.close();
+		}
+	}
+
+	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content)
+	{
+		QByteArray ba;
+			ba.append( app::conf.page.top );
+			ba.append( "		<title>-= " );
+			ba.append( title );
+			ba.append( " =-</title>\n	</head>\n<body>\n" );
+			ba.append( app::conf.page.menu );
+			ba.append( content );
+			ba.append( app::conf.page.bottom );
+		return ba;
 	}
 
 }

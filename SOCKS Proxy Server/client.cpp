@@ -181,7 +181,7 @@ void Client::slot_clientReadyRead()
 	if( m_pTarget->isOpen() ){
 		m_targetHost = pkt.targetHost;
 		//Send auth data from control server
-		if( pkt.addr.toString() == "127.0.0.1" && pkt.targetHost.port == app::conf.controlPort && m_auth ){
+		if( pkt.targetHost.ip.toString() == "127.0.0.1" && pkt.targetHost.port == app::conf.controlPort && m_auth ){
 			app::setLog(4,QString("Client::Send auth data from control server"));
 			QByteArray ba;
 			ba.append( Control::AUTH );
