@@ -205,7 +205,7 @@ bool ControlClient::parsInfoPkt(QByteArray &data, QByteArray &sendData)
 		case Control::USERS:
 			list.clear();
 			for( auto user:app::conf.users ){
-				str = QString("%1	%2	%3	%4").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp );
+				str = QString("%1	%2	%3	%4	%5	%6	%7	%8").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.inBytesMax ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.outBytesMax ) );
 				list.push_back( str );
 			}
 			sendData.append( list.join( ";" ) );
