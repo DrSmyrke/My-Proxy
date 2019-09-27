@@ -33,6 +33,9 @@ HEADERS += \
 ! include(./gitversion.pri) {
         error("Couldn't find the gitversion.pri file!")
 }
+! include(./myLibs.pri) {
+        error("Couldn't find the gitversion.pri file!")
+}
 
 RESOURCES += \
     resources.qrc
