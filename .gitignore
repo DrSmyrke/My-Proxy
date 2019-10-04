@@ -5,3 +5,7 @@ bin*
 *build-*
 *.QMCvio
 *.autosave
+*/http.h
+*/http.cpp
+*/myfunctions.h
+*/myfunctions.cpp
