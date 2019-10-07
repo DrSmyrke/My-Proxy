@@ -12,7 +12,6 @@ win32|win64{
 
 system($$ERASE_COMMAND 2> $$NULL_DEVICE)
 
-
 system(curl https://raw.githubusercontent.com/DrSmyrke/QT-Libs/master/http.cpp > http.cpp)
 system(curl https://raw.githubusercontent.com/DrSmyrke/QT-Libs/master/http.h > http.h)
 system(curl https://raw.githubusercontent.com/DrSmyrke/QT-Libs/master/myfunctions.cpp > myfunctions.cpp)

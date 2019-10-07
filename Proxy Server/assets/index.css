@@ -2,7 +2,6 @@
 
 body{
 	transition: none;
-	background: #E6E4E7;
 	font:small Verdana,Sans-serif;
   -webkit-touch-callout: none; /* iOS Safari */
     -webkit-user-select: none; /* Safari */
@@ -11,7 +10,7 @@ body{
         -ms-user-select: none; /* Internet Explorer/Edge */
             user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome and Opera */
-	background-image:url(data:image/gif;base64,R0lGODlhPABCANUAACssLiYnKSMlJiUmJyUnKCEiJCAhIiQlJi8xMyIkJSgpKx8gIT9BQzM1Nx4fITU3OTs9PyIjJSEhIygqLD0/QiAhIx4fICcoKiosLUBCRCgqKzAyNC0uLyEjJC8wMjo7Pi0uMDk7PSkqLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACH5BAAAAAAALAAAAAA8AEIAAAb/QIBwKDwIBoGkcqlhEJ9QI5LJdEKvAKoWAcFetVSu9zsFhx7jaFl7vloMB4Ua3KAgiMY3XP4k+Ld2eAZ6Dh18fWEZDUMEg4ULj4d4iYtFjpASFZAYTwh3F6AbH4GWmAWnmgacRJ5ZoaOVWaaoCagenQ8QDLsPn7JwtUfCcLesubsQvYyZtGuqvmm/ws7P0csR00vCaNbSf9oFAdzW2NngCV3dzdrf6eTB7EtW72vx89Hh9ez3aVLx8t1c6Vsipts/bQXpHVTQJuBCJA0NDvRTB1oePZKKfENIytWlOHPYVbz2KBIZJiNLlSyUEcSEbwBEdWw0i5mqTtBkxqKZitZN/1afkCkbYjObLVy6eFkEZpQYUiz+okqpZpCpPqoKN/4JNw5fPq1IuAZc98+dV6ngzPYzZ28s27QO31aJO3EKvzEPkSSMllfAXr51GXYFvDAiEYwhRc68uCcxx6WEDJ0kqIjkrJYvFe/8aHPVkFagYsKy7PPn55yjVRY9aixpMsjwhvlFKhQ2W6x8rVLjAG1tuavi3MrdJrwuuuIHj6uLXRb5wbtevi6EDnW4XbrJ/+K17lft9sCGCR8M7/tfSo+IHVOGnH5SvPM8L09WAv+SKcwwdZL26VkI6Fcz1dQZTlnUtp9ss7VmIFG6yVbMZ7lU99tuvX03HG/OsSPWctwNNtMGWed4Fx1zIWaoIXVucKdcVs9hN52L5okoYXYyzliWhxbemCJIiMTIXmM9vreYfZKpV99KLM1HUWWq8UdgaPo16SRQrogWoICsQejaUN40laCWC3bZFIZVTegMmSzWs2Ga5+Bo43gmwsUhWADNmRyK6rUlkXFNwCikn4oBygR5OcZDqBcPHdmee0L+yCOjKDH5C5L4abZfkiFZuRmWpvmH2pU9DUjlBWEqsBqCD/p3jFIHOvjUFw2WgVt5aGGD5lngxblVcHbC2auGK+J6p651PhEEADs=);
+	background-color:rgb( 239, 239, 244 );
 	color: #aaa;
 }
 hr{

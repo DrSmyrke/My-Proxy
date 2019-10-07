@@ -2,28 +2,29 @@
 #define SERVER_H
 
 #include <QObject>
-#include <QTcpServer>
-#include <QFile>
+#include <QtNetwork/QTcpServer>
+#include <QTcpSocket>
 #include <QTimer>
-//#include "client.h"
-#include "threadmanager.h"
+
+#include "client.h"
 #include "global.h"
 
 class Server : public QTcpServer
 {
 	Q_OBJECT
 public:
-	explicit Server(QObject *parent = 0);
+	explicit Server(QObject *parent = nullptr);
+	~Server();
 	bool run();
 	void stop();
 protected:
-	void incomingConnection(qintptr handle);
+	void incomingConnection(qintptr socketDescriptor);
+signals:
+	void signal_stopAll();
+private slots:
+	void slot_timer();
 private:
-	ThreadManager* m_pThreadManager;
 	QTimer* m_pTimer;
-	uint8_t m_timerCounter = 0;
-	uint8_t m_secSaveSettingsCounter = 0;
-	uint8_t m_secUpdateDataCounter = 0;
 };
 
 #endif // SERVER_H

@@ -2,7 +2,7 @@ QT += core
 QT += network
 QT -= gui
 
-TARGET = webproxy
+TARGET = myproxy
 CONFIG += console c++11
 CONFIG -= app_bundle
 
@@ -15,21 +15,27 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     client.cpp \
-    clientsmanager.cpp \
+    controlserver.cpp \
     global.cpp \
     http.cpp \
     myfunctions.cpp \
-    server.cpp \
-    threadmanager.cpp
+    server.cpp
+
+# Check if the git version file exists
+! include(./gitversion.pri) {
+        error("Couldn't find the gitversion.pri file!")
+}
+! include(./myLibs.pri) {
+        error("Couldn't find the gitversion.pri file!")
+}
 
 HEADERS += \
     client.h \
-    clientsmanager.h \
+    controlserver.h \
     global.h \
     http.h \
     myfunctions.h \
-    server.h \
-    threadmanager.h
+    server.h
 
 RESOURCES += \
     resources.qrc
