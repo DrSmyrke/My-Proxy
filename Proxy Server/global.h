@@ -61,7 +61,7 @@ struct HtmlPage{
 };
 
 struct Config{
-	bool verbose						= true;
+	bool verbose						= false;
 	uint8_t logLevel					= 3;
 #ifdef __linux__
 	QString confFile					= "/etc/DrSmyrke/MyProxy/config.ini";

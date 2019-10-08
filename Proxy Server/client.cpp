@@ -33,7 +33,7 @@ Client::Client(qintptr descriptor, QObject *parent)
 
 void Client::run()
 {
-
+	app::setLog(5,QString("Client::Client connected"));
 }
 
 void Client::slot_stop()
@@ -52,8 +52,6 @@ void Client::slot_clientReadyRead()
 {
 	QByteArray buff;
 
-	if(!m_pClient->isReadable()) m_pClient->waitForReadyRead(300);
-
 	while( m_pClient->bytesAvailable() ){
 		buff.append( m_pClient->read(1024) );
 		if( m_pTarget->isOpen() && m_tunnel ){
@@ -65,10 +63,11 @@ void Client::slot_clientReadyRead()
 		}
 	}
 
-	app::setLog(5,QString("ProxyClient::slot_clientReadyRead %1 bytes [%2] [%3]").arg(buff.size()).arg(QString(buff)).arg(QString(buff.toHex())));
-
 	// Если данные уже отправили выходим
 	if( buff.size() == 0 ) return;
+
+	app::setLog(5,QString("ProxyClient::slot_clientReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
+	app::setLog(6,QString("ProxyClient::slot_clientReadyRead [%3]").arg(QString(buff.toHex())));
 
 	auto pkt = http::parsPkt( buff );
 
@@ -84,7 +83,6 @@ void Client::slot_clientReadyRead()
 
 void Client::slot_targetReadyRead()
 {
-	if( !m_pTarget->isReadable()) m_pTarget->waitForReadyRead(300);
 	while( m_pTarget->bytesAvailable() ){
 		QByteArray buff;
 		buff.append( m_pTarget->read( 1024 ) );
@@ -121,7 +119,8 @@ void Client::sendToClient(const QByteArray &data)
 	if( m_pClient->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
-	app::setLog(5,QString("ProxyClient::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data.toHex())));
+	app::setLog(5,QString("ProxyClient::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data)));
+	app::setLog(6,QString("ProxyClient::sendToClient [%3]").arg(QString(data.toHex())));
 }
 
 void Client::sendToTarget(const QByteArray &data)
@@ -137,6 +136,9 @@ void Client::sendToTarget(const QByteArray &data)
 		m_pTarget->write( data );
 	}
 	m_pTarget->waitForBytesWritten(100);
+
+	app::setLog(5,QString("ProxyClient::sendToTarget %1 bytes [%2]").arg(data.size()).arg(QString(data)));
+	app::setLog(6,QString("ProxyClient::sendToTarget [%2]").arg(QString(data.toHex())));
 }
 
 void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
@@ -145,15 +147,18 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 	app::setLog( 4, QString("ProxyClient::parsHttpProxy %1 %2").arg( pkt.head.request.method ).arg( pkt.head.request.target ));
 
-	if( pkt.head.valid && pkt.isRequest ){
-		if( pkt.head.request.method == "CONNECT" ) m_proto = Client::Proto::HTTPS;
-		if( pkt.head.request.method == "GET" || pkt.head.request.method == "POST" ) m_proto = Client::Proto::HTTP;
-	}else{
+	if( pkt.head.request.method == "CONNECT" ) m_proto = Client::Proto::HTTPS;
+	if( pkt.head.request.method == "GET" || pkt.head.request.method == "POST" ) m_proto = Client::Proto::HTTP;
 
+	if( m_proto == http::Proto::UNKNOWN ){
+		sendResponse( 400, "<h1>Bad Request</h1>" );
+		slot_stop();
+		return;
 	}
 
 	// Обработка блокировки и отключения клиента
 	if( app::isBan( m_pTarget->peerAddress() ) ){
+		app::setLog( 3, QString("ProxyClient::parsHttpProxy client is isBan %1 %2").arg( m_userLogin ).arg( m_pClient->peerAddress().toString() ));
 		sendResponse( 423, "Locked" );
 		slot_stop();
 		return;
@@ -191,7 +196,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	switch ( m_proto ) {
 		case Client::Proto::HTTPS:
 			m_targetHostStr = pkt.head.request.target;
-			app::setLog(5,QString("ProxyClient::parsHttpProxy HTTPS Request to [%1]").arg( m_targetHostStr ));
+			app::setLog(4,QString("ProxyClient::parsHttpProxy HTTPS Request to [%1]").arg( m_targetHostStr ));
 			m_targetHostPort = 443;
 		break;
 		case Client::Proto::HTTP:
@@ -200,13 +205,21 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 				sendResponse( 400, "<h1>Bad Request</h1>" );
 				return;
 			}else{
-				m_targetHostStr = QString("%1:%2").arg( url.host() ).arg( url.port() );
+				m_targetHostStr = QString("%1:%2").arg( url.host() ).arg( url.port(80) );
 				pkt.head.request.target = url.path();
 				if( !url.query().isEmpty() ) pkt.head.request.target += "?" + url.query();
 				pkt.head.request.target.replace( " ", "%20" );
 			}
-			app::setLog(5,QString("ProxyClient::parsHttpProxy HTTP Request to [%1] %2").arg( m_targetHostStr ).arg( pkt.head.request.target ));
+
+			if( m_targetHostStr != pkt.head.host ){
+				app::setLog(3,QString("ProxyClient::parsHttpProxy Bad Request [%1][%2][%3]").arg( url.host() ).arg( pkt.head.host ).arg( pkt.head.request.target ));
+				sendResponse( 400, "<h1>Bad Request</h1>" );
+				return;
+			}
+
+			app::setLog(4,QString("ProxyClient::parsHttpProxy HTTP Request to [%1] %2").arg( m_targetHostStr ).arg( pkt.head.request.target ));
 			pkt.head.proxyAuthorization.clear();
+			pkt.head.connection = "close";
 			m_targetHostPort = 80;
 		break;
 	}
@@ -218,14 +231,13 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	}
 
 	if( m_targetHostStr.isEmpty() ){
-		app::setLog(5,QString("ProxyClient::parsHttpProxy Bad Request [%1]").arg( m_targetHostStr ));
+		app::setLog(3,QString("ProxyClient::parsHttpProxy Bad Request [%1]").arg( m_targetHostStr ));
 		sendResponse( 400, "<h1>Bad Request</h1>" );
 		return;
 	}
 
 	if( app::isBlockedDomName( m_targetHostStr ) ){
-		app::setLog(5,QString("ProxyClient::parsHttpProxy isBlockedDomName [%1]").arg( m_targetHostStr ));
-		m_proto = Client::Proto::UNKNOWN;
+		app::setLog(3,QString("ProxyClient::parsHttpProxy isBlockedDomName [%1]").arg( m_targetHostStr ));
 		sendResponse( 423, "Locked" );
 		slot_stop();
 		return;
@@ -238,7 +250,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	if( m_auth ){
 		//Если превысили лимит на траффик
 		if( app::isTrafficLimit( m_userLogin ) ){
-			app::setLog(5,QString("ProxyClient::parsHttpProxy isTrafficLimit [%1]").arg( m_targetHostStr ));
+			app::setLog(3,QString("ProxyClient::parsHttpProxy isTrafficLimit [%1]").arg( m_targetHostStr ));
 			targets.clear();
 			Host host;
 			host.ip.setAddress( "0.0.0.0" );
@@ -251,12 +263,12 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 	for( auto host:targets ){
 		if( app::isBlockHost( host ) ){
-			m_proto = Client::Proto::UNKNOWN;
-			moveToLockedPage( pkt.head.request.target );
+			app::setLog( 3, QString("ProxyClient::parsHttpProxy client is isBlockHost %1:%2").arg( host.ip.toString() ).arg( host.port ));
+			sendResponse( 423, "Locked" );
 			slot_stop();
 			return;
 		}
-		app::setLog(3,QString("ProxyClient::parsHttpProxy request connect [%1]->[%2:%3]").arg(m_userLogin).arg(host.ip.toString()).arg(host.port));
+		app::setLog(5,QString("ProxyClient::parsHttpProxy request connect [%1]->[%2:%3]").arg(m_userLogin).arg(host.ip.toString()).arg(host.port));
 
 		m_pTarget->connectToHost( host.ip, host.port );
 		m_pTarget->waitForConnected( 1300 );
@@ -273,6 +285,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 				ba.append( '\0' );
 				sendToTarget( ba );
 			}
+
 			m_tunnel = true;
 
 			if( m_proto == Client::Proto::HTTPS ){
@@ -290,7 +303,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		//else sendResponse( 504, "<h1>Gateway Timeout</h1>" );
 	}
 
-	if( !m_pTarget->isOpen() ){
+	if( !m_tunnel ){
 		sendResponse( 502, "<h1>Bad Gateway</h1>" );
 		return;
 	}
@@ -395,7 +408,7 @@ void Client::sendNoAccess()
 		pkt.body.rawData.append( app::getHtmlPage("Service page", ba) );
 		sendToClient( http::buildPkt(pkt) );
 		app::addBAN( m_pClient->peerAddress() );
-		app::setLog(4,QString("ProxyClient::sendNoAccess [%1]").arg(m_pClient->peerAddress().toString()));
+		app::setLog(3,QString("ProxyClient::sendNoAccess [%1]").arg(m_pClient->peerAddress().toString()));
 		slot_stop();
 	}
 }
@@ -416,6 +429,6 @@ void Client::moveToLockedPage(const QString &reffer)
 		pkt.head.connection = "keep-alive";
 		sendToClient( http::buildPkt(pkt) );
 
-		app::setLog(4,QString("ProxyClient::moveToLockedPage [%1]").arg(m_pClient->peerAddress().toString()));
+		app::setLog(3,QString("ProxyClient::moveToLockedPage [%1]").arg(m_pClient->peerAddress().toString()));
 	}
 }

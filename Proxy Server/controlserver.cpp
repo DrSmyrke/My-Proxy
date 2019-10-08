@@ -59,7 +59,7 @@ ControlClient::ControlClient(qintptr descriptor, QObject *parent)
 	: QObject(parent)
 	, m_auth(false)
 {
-	app::setLog(5,QString("ControlClient::ControlClient created"));
+	app::setLog(3,QString("ControlClient::ControlClient created"));
 
 	m_pClient = new QTcpSocket();
 
@@ -67,7 +67,7 @@ ControlClient::ControlClient(qintptr descriptor, QObject *parent)
 
 	connect( m_pClient, &QTcpSocket::readyRead, this, &ControlClient::slot_clientReadyRead);
 	connect( m_pClient, &QTcpSocket::disconnected, this, [this](){
-		app::setLog(5,QString("ControlClient::ControlClient disconnected"));
+		app::setLog(3,QString("ControlClient::ControlClient disconnected"));
 		slot_stop();
 	});
 }
@@ -103,11 +103,11 @@ void ControlClient::slot_clientReadyRead()
 		return;
 	}
 
-	if( !m_auth ) parsAuthPkt( buff );
-	if( !m_auth ){
-		slot_stop();
-		return;
-	}
+	//if( !m_auth ) parsAuthPkt( buff );
+	//if( !m_auth ){
+	//	slot_stop();
+	//	return;
+	//}
 
 	http::pkt pkt;
 
@@ -169,9 +169,9 @@ bool ControlClient::parsAuthPkt(QByteArray &data)
 			if( app::chkAuth2( login, pass ) ){
 				m_user = app::getUserData( login );
 				m_auth = true;
-				app::setLog(4,QString("ControlClient::parsAuthPkt() auth success [%1]").arg(QString(login)));
+				app::setLog(3,QString("ControlClient::parsAuthPkt() auth success [%1]").arg(QString(login)));
 			}else{
-				app::setLog(3,QString("ControlClient::parsAuthPkt() auth error [%1:%2]").arg(QString(login)).arg(QString(pass)));
+				app::setLog(2,QString("ControlClient::parsAuthPkt() auth error [%1:%2]").arg(QString(login)).arg(QString(pass)));
 			}
 
 		break;
@@ -227,7 +227,7 @@ void ControlClient::sendRawResponse(const uint16_t code, const QString &comment,
 	pkt.head.response.comment = comment;
 	if( !mimeType.isEmpty() ) pkt.head.contType = mimeType;
 	pkt.body.rawData.append( data );
-	app::setLog( 4, QString("ControlClient::sendRawResponse [%1]").arg(pkt.head.response.code) );
+	app::setLog( 5, QString("ControlClient::sendRawResponse [%1]").arg(pkt.head.response.code) );
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -237,7 +237,7 @@ void ControlClient::sendResponse(const uint16_t code, const QString &comment)
 	pkt.head.response.code = code;
 	pkt.head.response.comment = comment;
 	pkt.body.rawData.append( app::getHtmlPage("Service page",comment.toLatin1()) );
-	app::setLog( 4, QString("ControlClient::sendResponse [%1]").arg(pkt.head.response.code) );
+	app::setLog( 5, QString("ControlClient::sendResponse [%1]").arg(pkt.head.response.code) );
 	sendToClient( http::buildPkt(pkt) );
 }
 

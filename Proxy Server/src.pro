@@ -6,8 +6,9 @@ TARGET = myproxy
 CONFIG += console c++11
 CONFIG -= app_bundle
 
-OBJECTS_DIR = _build
-DESTDIR  = ../bin
+OBJECTS_DIR         = ../build
+MOC_DIR             = ../build
+DESTDIR             = ../bin
 
 QMAKE_CXXFLAGS += "-std=c++11"
 
