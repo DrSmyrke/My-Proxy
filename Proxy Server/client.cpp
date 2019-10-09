@@ -74,7 +74,7 @@ void Client::slot_clientReadyRead()
 	if( pkt.head.valid && pkt.isRequest ){
 		parsHttpProxy( pkt, buff.size() );
 	}else{
-		sendResponse( 400, "<h1>Bad Request</h1>" );
+		sendResponse( 400, "Bad Request" );
 		return;
 	}
 
@@ -151,7 +151,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	if( pkt.head.request.method == "GET" || pkt.head.request.method == "POST" ) m_proto = Client::Proto::HTTP;
 
 	if( m_proto == http::Proto::UNKNOWN ){
-		sendResponse( 400, "<h1>Bad Request</h1>" );
+		sendResponse( 400, "Bad Request" );
 		slot_stop();
 		return;
 	}
@@ -202,7 +202,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		case Client::Proto::HTTP:
 			url.setUrl( pkt.head.request.target );
 			if( !url.isValid() ){
-				sendResponse( 400, "<h1>Bad Request</h1>" );
+				sendResponse( 400, "Bad Request" );
 				return;
 			}else{
 				m_targetHostStr = QString("%1:%2").arg( url.host() ).arg( url.port(80) );
@@ -213,7 +213,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 			if( m_targetHostStr != pkt.head.host ){
 				app::setLog(4,QString("ProxyClient::parsHttpProxy Bad Request [%1][%2][%3]").arg( url.host() ).arg( pkt.head.host ).arg( pkt.head.request.target ));
-				sendResponse( 400, "<h1>Bad Request</h1>" );
+				sendResponse( 400, "Bad Request" );
 				return;
 			}
 
@@ -232,7 +232,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 	if( m_targetHostStr.isEmpty() ){
 		app::setLog(3,QString("ProxyClient::parsHttpProxy Bad Request [%1]").arg( m_targetHostStr ));
-		sendResponse( 400, "<h1>Bad Request</h1>" );
+		sendResponse( 400, "Bad Request" );
 		return;
 	}
 
@@ -250,7 +250,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	if( m_auth ){
 		//Если превысили лимит на траффик
 		if( app::isTrafficLimit( m_userLogin ) ){
-			app::setLog(3,QString("ProxyClient::parsHttpProxy isTrafficLimit [%1]").arg( m_targetHostStr ));
+			app::setLog(4,QString("ProxyClient::parsHttpProxy isTrafficLimit [%1]").arg( m_targetHostStr ));
 			targets.clear();
 			Host host;
 			host.ip.setAddress( "0.0.0.0" );
@@ -289,7 +289,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 			m_tunnel = true;
 
 			if( m_proto == Client::Proto::HTTPS ){
-				sendResponse( 200, "<h1>Connection established</h1>" );
+				sendResponse( 200, "Connection established" );
 				break;
 			}
 
@@ -300,11 +300,11 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 			break;
 		}
-		//else sendResponse( 504, "<h1>Gateway Timeout</h1>" );
+		//else sendResponse( 504, "Gateway Timeout" );
 	}
 
 	if( !m_tunnel ){
-		sendResponse( 502, "<h1>Bad Gateway</h1>" );
+		sendResponse( 502, "Bad Gateway" );
 		return;
 	}
 }

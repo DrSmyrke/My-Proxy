@@ -118,10 +118,15 @@ void ControlClient::slot_clientReadyRead()
 		pkt = http::parsPkt( buff );
 	}
 	if( pkt.next ){
+		app::setLog( 5, QString("ControlClient::slot_clientReadyRead packet small") );
 		m_buff.append( buff );
 		return;
 	}
-	if( pkt.valid ) processingRequest( pkt );
+	if( pkt.valid ){
+		processingRequest( pkt );
+	}else{
+		app::setLog( 5, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2][%3]").arg( QString( buff ) ).arg( pkt.head.valid ).arg( pkt.body.valid ) );
+	}
 }
 
 void ControlClient::sendToClient(const QByteArray &data)
@@ -169,9 +174,9 @@ bool ControlClient::parsAuthPkt(QByteArray &data)
 			if( app::chkAuth2( login, pass ) ){
 				m_userLogin = login;
 				m_auth = true;
-				app::setLog(3,QString("ControlClient::parsAuthPkt() auth success [%1]").arg(QString(login)));
+				app::setLog(4,QString("ControlClient::parsAuthPkt auth success [%1]").arg(QString(login)));
 			}else{
-				app::setLog(2,QString("ControlClient::parsAuthPkt() auth error [%1:%2]").arg(QString(login)).arg(QString(pass)));
+				app::setLog(2,QString("ControlClient::parsAuthPkt auth error [%1:%2]").arg(QString(login)).arg(QString(pass)));
 			}
 
 		break;
