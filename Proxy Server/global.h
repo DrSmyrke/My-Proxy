@@ -156,6 +156,11 @@ namespace app {
 	bool isMaxConnections(const QString &login);
 	QString getUserPass(const QString &login);
 	bool isTrafficLimit(const QString &login);
+	QString getDateTime(const uint32_t timeStamp);
+	bool changePassword(const QString &login, const QString &newPassword);
+	bool changeMaxConnections(const QString &login, const uint32_t maxConnections);
+	bool changeMaxInBytes(const QString &login, const uint32_t maxInBytes);
+	bool changeMaxOutBytes(const QString &login, const uint32_t maxOutBytes);
 }
 
 #endif // GLOBAL_H

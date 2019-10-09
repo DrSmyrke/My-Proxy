@@ -11,3 +11,4 @@ bin*
 */myfunctions.cpp
 build/*
 *.qmake.stash
+*/qrc_resources.cpp

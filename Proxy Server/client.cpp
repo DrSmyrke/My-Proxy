@@ -212,7 +212,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 			}
 
 			if( m_targetHostStr != pkt.head.host ){
-				app::setLog(3,QString("ProxyClient::parsHttpProxy Bad Request [%1][%2][%3]").arg( url.host() ).arg( pkt.head.host ).arg( pkt.head.request.target ));
+				app::setLog(4,QString("ProxyClient::parsHttpProxy Bad Request [%1][%2][%3]").arg( url.host() ).arg( pkt.head.host ).arg( pkt.head.request.target ));
 				sendResponse( 400, "<h1>Bad Request</h1>" );
 				return;
 			}
@@ -237,7 +237,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	}
 
 	if( app::isBlockedDomName( m_targetHostStr ) ){
-		app::setLog(3,QString("ProxyClient::parsHttpProxy isBlockedDomName [%1]").arg( m_targetHostStr ));
+		app::setLog(4,QString("ProxyClient::parsHttpProxy isBlockedDomName [%1]").arg( m_targetHostStr ));
 		sendResponse( 423, "Locked" );
 		slot_stop();
 		return;
@@ -263,7 +263,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 	for( auto host:targets ){
 		if( app::isBlockHost( host ) ){
-			app::setLog( 3, QString("ProxyClient::parsHttpProxy client is isBlockHost %1:%2").arg( host.ip.toString() ).arg( host.port ));
+			app::setLog( 4, QString("ProxyClient::parsHttpProxy client is isBlockHost %1:%2").arg( host.ip.toString() ).arg( host.port ));
 			sendResponse( 423, "Locked" );
 			slot_stop();
 			return;

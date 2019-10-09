@@ -10,5 +10,6 @@
         <file>assets/menu.html</file>
         <file>assets/top.html</file>
         <file>assets/up-arrow.png</file>
+        <file>assets/state.html</file>
     </qresource>
 </RCC>

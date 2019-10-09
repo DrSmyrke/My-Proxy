@@ -43,6 +43,7 @@ namespace app {
 		if( app::conf.page.bottom.size() == 0 )			app::loadResource( ":/assets/bottom.html", app::conf.page.bottom );
 		if( app::conf.page.menu.size() == 0 )			app::loadResource( ":/assets/menu.html", app::conf.page.menu );
 		if( app::conf.page.index.size() == 0 )			app::loadResource( ":/assets/index.html", app::conf.page.index );
+		if( app::conf.page.state.size() == 0 )			app::loadResource( ":/assets/state.html", app::conf.page.state );
 
 		if( app::conf.page.buttonsCSS.size() == 0 )		app::loadResource( ":/assets/buttons.css", app::conf.page.buttonsCSS );
 		if( app::conf.page.colorCSS.size() == 0 )		app::loadResource( ":/assets/color.css", app::conf.page.colorCSS );
@@ -1002,7 +1003,7 @@ namespace app {
 		QFile file;
 
 		file.setFileName( fileName );
-		if(file.open(QIODevice::ReadOnly | QIODevice::Text)){
+		if(file.open(QIODevice::ReadOnly)){
 			while (!file.atEnd()) data.append( file.readAll() );
 			file.close();
 		}
@@ -1123,6 +1124,78 @@ namespace app {
 		for( auto user:app::conf.users ){
 			if( login == user.login ){
 				if( user.inBytes >= user.inBytesMax || user.outBytes >= user.outBytesMax ) res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	QString getDateTime(const uint32_t timeStamp)
+	{
+		QDateTime dt;
+		dt.setTime_t( timeStamp );
+		QString str = dt.toString("yyyy.MM.dd [hh:mm:ss] ");
+		return str;
+	}
+
+	bool changePassword(const QString &login, const QString &newPassword)
+	{
+		bool res = false;
+
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.pass = mf::md5( login.toUtf8() + ":" + app::conf.realmString + ":" + newPassword.toUtf8() ).toHex();
+				app::conf.usersSave = true;
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	bool changeMaxConnections(const QString &login, const uint32_t maxConnections)
+	{
+		bool res = false;
+
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.maxConnections = maxConnections;
+				app::conf.usersSave = true;
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	bool changeMaxInBytes(const QString &login, const uint32_t maxInBytes)
+	{
+		bool res = false;
+
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.inBytesMax = maxInBytes;
+				app::conf.usersSave = true;
+				res = true;
+				break;
+			}
+		}
+
+		return res;
+	}
+
+	bool changeMaxOutBytes(const QString &login, const uint32_t maxOutBytes)
+	{
+		bool res = false;
+
+		for( auto &user:app::conf.users ){
+			if( login == user.login ){
+				user.outBytesMax = maxOutBytes;
+				app::conf.usersSave = true;
+				res = true;
 				break;
 			}
 		}

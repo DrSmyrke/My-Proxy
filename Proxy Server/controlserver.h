@@ -39,13 +39,13 @@ private slots:
 private:
 	QTcpSocket* m_pClient;
 	bool m_auth;
-	User m_user;
+	QString m_userLogin;
 	QByteArray m_buff;
 
 	void sendToClient(const QByteArray &data);
 	bool parsAuthPkt(QByteArray &data);
 	bool parsInfoPkt(QByteArray &data, QByteArray &sendData);
-	void sendRawResponse(const uint16_t code, const QString &comment, const QString &data, const QString &mimeType);
+	void sendRawResponse(const uint16_t code, const QString &comment, const QByteArray &data, const QString &mimeType);
 	void sendResponse(const uint16_t code, const QString &comment);
 	void processingRequest(const http::pkt &pkt);
 };
