@@ -8,6 +8,7 @@ CONFIG -= app_bundle
 
 OBJECTS_DIR         = ../build
 MOC_DIR             = ../build
+RCC_DIR             = ../build
 DESTDIR             = ../bin
 
 QMAKE_CXXFLAGS += "-std=c++11"
