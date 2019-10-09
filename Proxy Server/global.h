@@ -39,9 +39,8 @@ struct User{
 	std::vector<Host> accessList;
 	std::vector<Host> blockList;
 	uint32_t inBytes					= 0;
-	uint32_t inBytesMax					= 1073741824;
 	uint32_t outBytes					= 0;
-	uint32_t outBytesMax				= 1073741824;
+	uint32_t bytesMax					= 536870912;
 };
 
 struct HtmlPage{
@@ -159,8 +158,7 @@ namespace app {
 	QString getDateTime(const uint32_t timeStamp);
 	bool changePassword(const QString &login, const QString &newPassword);
 	bool changeMaxConnections(const QString &login, const uint32_t maxConnections);
-	bool changeMaxInBytes(const QString &login, const uint32_t maxInBytes);
-	bool changeMaxOutBytes(const QString &login, const uint32_t maxOutBytes);
+	bool changeMaxBytes(const QString &login, const uint32_t bytesMax);
 }
 
 #endif // GLOBAL_H

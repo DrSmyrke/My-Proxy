@@ -619,8 +619,7 @@ namespace app {
 			user.group				= app::getUserGroupFromName( users.value( "group", "" ).toString() );
 			user.pass				= users.value( "password", "" ).toString();
 			user.maxConnections		= users.value( "maxConnections", user.maxConnections ).toUInt();
-			user.inBytesMax			= users.value( "inBytesMax", user.inBytesMax ).toUInt();
-			user.outBytesMax		= users.value( "outBytesMax", user.outBytesMax ).toUInt();
+			user.bytesMax			= users.value( "bytesMax", user.bytesMax ).toUInt();
 			auto accessList			= users.value( "accessList", "*" ).toString().split(",");
 			auto blockList			= users.value( "blockList", "*" ).toString().split(",");
 
@@ -659,8 +658,7 @@ namespace app {
 			app::updateListFromList( user.blockList, blockList );
 			users.setValue( "accessList", accessList.join(",") );
 			users.setValue( "blockList", blockList.join(",") );
-			users.setValue( "inBytesMax", user.inBytesMax );
-			users.setValue( "outBytesMax", user.outBytesMax );
+			users.setValue( "bytesMax", user.bytesMax );
 
 			users.endGroup();
 		}
@@ -1125,7 +1123,7 @@ namespace app {
 
 		for( auto user:app::conf.users ){
 			if( login == user.login ){
-				if( user.inBytes >= user.inBytesMax || user.outBytes >= user.outBytesMax ) res = true;
+				if( ( user.inBytes + user.outBytes ) >= user.bytesMax ) res = true;
 				break;
 			}
 		}
@@ -1173,29 +1171,13 @@ namespace app {
 		return res;
 	}
 
-	bool changeMaxInBytes(const QString &login, const uint32_t maxInBytes)
+	bool changeMaxBytes(const QString &login, const uint32_t bytesMax)
 	{
 		bool res = false;
 
 		for( auto &user:app::conf.users ){
 			if( login == user.login ){
-				user.inBytesMax = maxInBytes;
-				app::conf.usersSave = true;
-				res = true;
-				break;
-			}
-		}
-
-		return res;
-	}
-
-	bool changeMaxOutBytes(const QString &login, const uint32_t maxOutBytes)
-	{
-		bool res = false;
-
-		for( auto &user:app::conf.users ){
-			if( login == user.login ){
-				user.outBytesMax = maxOutBytes;
+				user.bytesMax = bytesMax;
 				app::conf.usersSave = true;
 				res = true;
 				break;

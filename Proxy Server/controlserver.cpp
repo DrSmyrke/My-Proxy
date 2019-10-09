@@ -210,7 +210,7 @@ bool ControlClient::parsInfoPkt(QByteArray &data, QByteArray &sendData)
 		case Control::USERS:
 			list.clear();
 			for( auto user:app::conf.users ){
-				str = QString("%1	%2	%3	%4	%5	%6	%7	%8").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.inBytesMax ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.outBytesMax ) );
+				str = QString("%1	%2	%3	%4	%5	%6	%7").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.bytesMax ) );
 				list.push_back( str );
 			}
 			sendData.append( list.join( ";" ) );
@@ -312,8 +312,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 
 					QString changePass;
 					QString maxConnections;
-					QString inBytesMax;
-					QString outBytesMax;
+					QString bytesMax;
 
 					if( m_auth && myData.group == UserGrpup::admins ){
 						changePass += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, \'alertBoxPass\', true );\">");
@@ -327,15 +326,10 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					maxConnections += QString("<input type=\"text\" name=\"newMaxConnections\" value=\"%1\"> <div style=\"display: inline-block;\" id=\"alertBoxMaxConnections\"></div>").arg( userData.maxConnections );
 					maxConnections += QString("</form>");
 
-					inBytesMax += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, \'alertBoxinBytesMax\', true );\">");
-					inBytesMax += QString("<input type=\"hidden\" name=\"user\" value=\"%1\">").arg( QString(value) );
-					inBytesMax += QString("<input type=\"text\" name=\"newinBytesMax\" value=\"%1\"> <div style=\"display: inline-block;\" id=\"alertBoxinBytesMax\"></div>").arg( userData.inBytesMax );
-					inBytesMax += QString("</form>");
-
-					outBytesMax += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, \'alertBoxoutBytesMax\', true );\">");
-					outBytesMax += QString("<input type=\"hidden\" name=\"user\" value=\"%1\">").arg( QString(value) );
-					outBytesMax += QString("<input type=\"text\" name=\"newoutBytesMax\" value=\"%1\"> <div style=\"display: inline-block;\" id=\"alertBoxoutBytesMax\"></div>").arg( userData.outBytesMax );
-					outBytesMax += QString("</form>");
+					bytesMax += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, \'alertBoxBytesMax\', true );\">");
+					bytesMax += QString("<input type=\"hidden\" name=\"user\" value=\"%1\">").arg( QString(value) );
+					bytesMax += QString("<input type=\"text\" name=\"newBytesMax\" value=\"%1\"> <div style=\"display: inline-block;\" id=\"alertBoxBytesMax\"></div>").arg( userData.bytesMax );
+					bytesMax += QString("</form>");
 
 					response.append("<table>");
 					response.append( QString("<tr><td width=\"120px\">Login:</td><td>%1</td></tr>").arg( userData.login ) );
@@ -343,8 +337,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 						response.append( QString("<tr><td>Password:</td><td>%1</td></tr>").arg( changePass ) );
 					}
 					response.append( QString("<tr><td>MaxConnections:</td><td>%1</td></tr>").arg( maxConnections ) );
-					response.append( QString("<tr><td>inBytesMax:</td><td>%1</td></tr>").arg( inBytesMax ) );
-					response.append( QString("<tr><td>outBytesMax:</td><td>%1</td></tr>").arg( outBytesMax ) );
+					response.append( QString("<tr><td>inBytesMax:</td><td>%1</td></tr>").arg( bytesMax ) );
 					response.append("</table>");
 				}
 				if( param == "ss" && value == "serverSettings" && m_auth && myData.group == UserGrpup::admins ){
@@ -393,7 +386,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append( ":>:" );
 					response.append("<table>");
 					for( auto user:app::conf.users ){
-						auto str = QString("<tr><td>%1</td><td>%2/%3</td><td><img src=\"/down-arrow.png\" class=\"traffIco\"> %4/%5</td><td><img src=\"/up-arrow.png\" class=\"traffIco\"> %6/%7</td></tr>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.inBytesMax ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.outBytesMax ) );
+						auto str = QString("<tr><td>%1</td><td>%2/%3</td><td><img src=\"/down-arrow.png\" class=\"traffIco\"> %4</td><td><img src=\"/up-arrow.png\" class=\"traffIco\"> %5</td><td>%6</td></tr>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.bytesMax ) );
 						response.append( str );
 					}
 					response.append("</table>");
@@ -472,25 +465,11 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 				}
 			}
 
-			if( args.contains( "newinBytesMax" ) && args.contains( "user" ) ){
+			if( args.contains( "newBytesMax" ) && args.contains( "user" ) ){
 				auto user = args.value( "user" );
-				auto newinBytesMax = args.value( "newinBytesMax" );
+				auto newBytesMax = args.value( "newBytesMax" );
 				if( m_auth && myData.group == UserGrpup::admins ){
-					if( app::changeMaxInBytes( user, newinBytesMax.toUInt() ) ){
-						response.append( "<span class=\"valgreen\">Success!</span>" );
-					}else{
-						response.append( "<span class=\"message\">ERROR</span>" );
-					}
-				}else{
-					response.append( "<span class=\"message\">ERROR</span>" );
-				}
-			}
-
-			if( args.contains( "newoutBytesMax" ) && args.contains( "user" ) ){
-				auto user = args.value( "user" );
-				auto newoutBytesMax = args.value( "newoutBytesMax" );
-				if( m_auth && myData.group == UserGrpup::admins ){
-					if( app::changeMaxOutBytes( user, newoutBytesMax.toUInt() ) ){
+					if( app::changeMaxBytes( user, newBytesMax.toUInt() ) ){
 						response.append( "<span class=\"valgreen\">Success!</span>" );
 					}else{
 						response.append( "<span class=\"message\">ERROR</span>" );
