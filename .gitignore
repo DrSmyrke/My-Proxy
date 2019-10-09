@@ -10,3 +10,4 @@ bin*
 */myfunctions.h
 */myfunctions.cpp
 build/*
+*.qmake.stash
