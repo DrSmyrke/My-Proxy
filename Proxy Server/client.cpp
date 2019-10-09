@@ -211,12 +211,6 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 				pkt.head.request.target.replace( " ", "%20" );
 			}
 
-			if( m_targetHostStr != pkt.head.host ){
-				app::setLog(4,QString("ProxyClient::parsHttpProxy Bad Request [%1][%2][%3]").arg( url.host() ).arg( pkt.head.host ).arg( pkt.head.request.target ));
-				sendResponse( 400, "Bad Request" );
-				return;
-			}
-
 			app::setLog(4,QString("ProxyClient::parsHttpProxy HTTP Request to [%1] %2").arg( m_targetHostStr ).arg( pkt.head.request.target ));
 			pkt.head.proxyAuthorization.clear();
 			pkt.head.connection = "close";
