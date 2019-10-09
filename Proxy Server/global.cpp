@@ -270,7 +270,7 @@ namespace app {
 			}
 		}
 
-		app::setLog( 4, QString("isBlockHost [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( (res)?"true":"false" ) );
+		app::setLog( 5, QString("isBlockHost [%1:%2] [%3]").arg( host.ip.toString() ).arg( host.port ).arg( (res)?"true":"false" ) );
 
 		return res;
 	}

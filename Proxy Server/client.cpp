@@ -283,7 +283,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 			m_tunnel = true;
 
 			if( m_proto == Client::Proto::HTTPS ){
-				sendResponse( 200, "Connection established" );
+				sendRawResponse( 200, "Connection established", "", "" );
 				break;
 			}
 

@@ -356,7 +356,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					if( m_auth && myData.group == UserGrpup::admins ){
 						logLevel += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, \'alertLogLevel\', true );\">");
 						logLevel += QString("<input type=\"hidden\" name=\"sysParam\" value=\"logLevel\">");
-						logLevel += QString("<input type=\"number\" name=\"logLevel\" max=\"6\" min=\"0\" value=\"%1\"> <div style=\"display: inline-block;\" id=\"alertLogLevel\"></div>").arg( app::conf.logLevel );
+						logLevel += QString("<input type=\"number\" name=\"value\" max=\"6\" min=\"0\" value=\"%1\"> <div style=\"display: inline-block;\" id=\"alertLogLevel\"></div>").arg( app::conf.logLevel );
 						logLevel += QString("</form>");
 					}else{
 						logLevel += QString("%1").arg( app::conf.logLevel );
