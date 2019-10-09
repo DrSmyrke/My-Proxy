@@ -289,6 +289,10 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 		sendRawResponse( 200, "OK", app::getHtmlPage( "Admin", app::conf.page.admin ), "text/html; charset=utf-8" );
 		error = false;
 	}
+	if( pkt.head.request.target == "/config" ){
+		sendRawResponse( 200, "OK", app::getHtmlPage( "Config", app::conf.page.config ), "text/html; charset=utf-8" );
+		error = false;
+	}
 	if( pkt.head.request.target.indexOf("/get?",Qt::CaseInsensitive) == 0 ) method = "GET";
 	if( pkt.head.request.target.indexOf("/set?",Qt::CaseInsensitive) == 0 ) method = "SET";
 	if( method == "GET" || method == "SET" ){
@@ -342,6 +346,30 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append( QString("<tr><td>inBytesMax:</td><td>%1</td></tr>").arg( inBytesMax ) );
 					response.append( QString("<tr><td>outBytesMax:</td><td>%1</td></tr>").arg( outBytesMax ) );
 					response.append("</table>");
+				}
+				if( param == "ss" && value == "serverSettings" && m_auth && myData.group == UserGrpup::admins ){
+					response.append( ":>:" );
+					response.append( value );
+					response.append( ":>:" );
+
+					QString logLevel;
+					if( m_auth && myData.group == UserGrpup::admins ){
+						logLevel += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, \'alertLogLevel\', true );\">");
+						logLevel += QString("<input type=\"hidden\" name=\"sysParam\" value=\"logLevel\">");
+						logLevel += QString("<input type=\"number\" name=\"logLevel\" max=\"6\" min=\"0\" value=\"%1\"> <div style=\"display: inline-block;\" id=\"alertLogLevel\"></div>").arg( app::conf.logLevel );
+						logLevel += QString("</form>");
+					}else{
+						logLevel += QString("%1").arg( app::conf.logLevel );
+					}
+
+					response.append("<table>");
+					response.append( QString("<tr><td>LogLevel:</td><td>%1</td></tr>").arg( logLevel ) );
+					//response.append( QString("<tr><td>MaxConnections:</td><td>%1</td></tr>").arg( maxConnections ) );
+					//response.append( QString("<tr><td>inBytesMax:</td><td>%1</td></tr>").arg( inBytesMax ) );
+					//response.append( QString("<tr><td>outBytesMax:</td><td>%1</td></tr>").arg( outBytesMax ) );
+					response.append("</table>");
+
+					continue;
 				}
 				if( param == "ud" && value == "usersData" ){
 					response.append( ":>:" );
@@ -397,6 +425,25 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 			}
 		}
 		if( method == "SET" ){
+			if( args.contains( "sysParam" ) && args.contains( "value" ) && m_auth && myData.group == UserGrpup::admins ){
+				auto param = args.value( "sysParam" );
+				auto value = args.value( "value" );
+				bool find = false;
+
+				if( param == "logLevel" ){
+					uint8_t level = static_cast<uint8_t>( value.toUShort() );
+					if( level > 6 ) level = 6;
+					app::conf.logLevel = level;
+					app::conf.settingsSave = true;
+					find = true;
+				}
+
+				if( find ){
+					response.append( "<span class=\"valgreen\">Success!</span>" );
+				}else{
+					response.append( "<span class=\"message\">ERROR</span>" );
+				}
+			}
 			if( args.contains( "newPass" ) && args.contains( "user" ) ){
 				auto user = args.value( "user" );
 				auto newPass = args.value( "newPass" );

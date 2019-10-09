@@ -44,6 +44,8 @@ namespace app {
 		if( app::conf.page.menu.size() == 0 )			app::loadResource( ":/assets/menu.html", app::conf.page.menu );
 		if( app::conf.page.index.size() == 0 )			app::loadResource( ":/assets/index.html", app::conf.page.index );
 		if( app::conf.page.state.size() == 0 )			app::loadResource( ":/assets/state.html", app::conf.page.state );
+		if( app::conf.page.admin.size() == 0 )			app::loadResource( ":/assets/admin.html", app::conf.page.admin );
+		if( app::conf.page.config.size() == 0 )			app::loadResource( ":/assets/config.html", app::conf.page.config );
 
 		if( app::conf.page.buttonsCSS.size() == 0 )		app::loadResource( ":/assets/buttons.css", app::conf.page.buttonsCSS );
 		if( app::conf.page.colorCSS.size() == 0 )		app::loadResource( ":/assets/color.css", app::conf.page.colorCSS );
