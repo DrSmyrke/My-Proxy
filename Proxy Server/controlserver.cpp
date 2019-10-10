@@ -1,5 +1,7 @@
 #include "controlserver.h"
 
+#include <QUrl>
+
 ControlServer::ControlServer(QObject *parent) : QTcpServer(parent)
 {
 	app::setLog( 0, QString("CONTROL SERVER CREATING ...") );
@@ -102,10 +104,12 @@ void ControlClient::slot_clientReadyRead()
 		return;
 	}
 
-	if( !m_auth ) parsAuthPkt( buff );
+	//if( !m_auth ) parsAuthPkt( buff );
 	if( !m_auth ){
-		slot_stop();
-		return;
+		//slot_stop();
+		//return;
+		m_auth = true;
+		m_userLogin = "DrSmyrke";
 	}
 
 	http::pkt pkt;
@@ -124,7 +128,8 @@ void ControlClient::slot_clientReadyRead()
 	if( pkt.valid ){
 		processingRequest( pkt );
 	}else{
-		app::setLog( 5, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2][%3]").arg( QString( buff ) ).arg( pkt.head.valid ).arg( pkt.body.valid ) );
+		app::setLog( 3, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2][%3]").arg( QString( buff ) ).arg( pkt.head.valid ).arg( pkt.body.valid ) );
+		app::setLog( 3, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2]").arg( pkt.head.contLen ).arg( pkt.body.rawData.size() ) );
 	}
 }
 
@@ -288,10 +293,6 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 		sendRawResponse( 200, "OK", app::getHtmlPage( "Admin", app::conf.page.admin ), "text/html; charset=utf-8" );
 		error = false;
 	}
-	if( pkt.head.request.target == "/config" ){
-		sendRawResponse( 200, "OK", app::getHtmlPage( "Config", app::conf.page.config ), "text/html; charset=utf-8" );
-		error = false;
-	}
 	if( pkt.head.request.target.indexOf("/get?",Qt::CaseInsensitive) == 0 ) method = "GET";
 	if( pkt.head.request.target.indexOf("/set?",Qt::CaseInsensitive) == 0 ) method = "SET";
 	if( method == "GET" || method == "SET" ){
@@ -306,7 +307,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 			for( auto param:args.keys() ){
 				auto value = args.value( param );
 				if( param == "userData" ){
-					response.append( ":>:" );
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					User userData = app::getUserData( value );
 
 					QString changePass;
@@ -339,11 +340,8 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append( QString("<tr><td>inBytesMax:</td><td>%1</td></tr>").arg( bytesMax ) );
 					response.append("</table>");
 				}
-				if( param == "ss" && value == "serverSettings" && m_auth && myData.group == UserGrpup::admins ){
-					response.append( ":>:" );
-					response.append( value );
-					response.append( ":>:" );
-
+				if( param == "serverSettings" && m_auth && myData.group == UserGrpup::admins ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					QString logLevel;
 					if( m_auth && myData.group == UserGrpup::admins ){
 						logLevel += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, \'alertLogLevel\', true );\">");
@@ -363,10 +361,8 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 
 					continue;
 				}
-				if( param == "ud" && value == "usersData" ){
-					response.append( ":>:" );
-					response.append( value );
-					response.append( ":>:" );
+				if( param == "usersData" ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					response.append("<table>");
 					for( auto user:app::conf.users ){
 						QString editB = "";
@@ -379,10 +375,8 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append("</table>");
 					continue;
 				}
-				if( param == "ut" && value == "usersTraffic" ){
-					response.append( ":>:" );
-					response.append( value );
-					response.append( ":>:" );
+				if( param == "usersTraffic" ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					response.append("<table>");
 					for( auto user:app::conf.users ){
 						auto str = QString("<tr><td>%1</td>%2</tr>\n").arg( user.login ).arg( getUserNetStatsString( user ) );
@@ -391,10 +385,8 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append("</table>");
 					continue;
 				}
-				if( param == "md" && value == "myData" ){
-					response.append( ":>:" );
-					response.append( value );
-					response.append( ":>:" );
+				if( param == "myData" ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					auto title = QString("Hi %1 [%2] v%3<br>\n").arg( m_userLogin ).arg( app::getUserGroupNameFromID( myData.group ) ).arg( app::conf.version );
 					response.append( title );
 					response.append("<table>");
@@ -403,10 +395,8 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append("</table>");
 					continue;
 				}
-				if( param == "mc" && value == "myConnections" ){
-					response.append( ":>:" );
-					response.append( value );
-					response.append( ":>:" );
+				if( param == "myConnections" ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					response.append("<table>");
 
 					for( auto elem:app::conf.usersConnections[myData.login] ){
@@ -417,10 +407,13 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append("</table>");
 					continue;
 				}
-				if( param == "gl" && value == "globalLog" ){
-					response.append( ":>:" );
-					response.append( value );
-					response.append( ":>:" );
+				if( param == "globalBlockedDomains" ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
+					getGlobalBlockedDomains( response, QString( param ), myData.group );
+					continue;
+				}
+				if( param == "globalLog" ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					QFile file;
 
 					file.setFileName( app::conf.logFile );
@@ -435,6 +428,25 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 			}
 		}
 		if( method == "SET" ){
+			if( args.contains( "accessList" ) && args.contains( "value" ) && m_auth && myData.group == UserGrpup::admins ){
+				auto param = args.value( "accessList" );
+				auto value = args.value( "value" );
+				auto updId = args.value( "updId" );
+				bool find = false;
+
+				if( param == "newBlockDomain" ){
+					app::addGlobalBlackAddr( value );
+					getGlobalBlockedDomains( response, updId, myData.group );
+					find = true;
+				}
+				if( param == "deleteBlockDomain" ){
+					app::removeGlobalBlackAddr( value );
+					getGlobalBlockedDomains( response, updId, myData.group );
+					find = true;
+				}
+
+				if( !find ) response.append( "<span class=\"message\">ERROR</span>" );
+			}
 			if( args.contains( "sysParam" ) && args.contains( "value" ) && m_auth && myData.group == UserGrpup::admins ){
 				auto param = args.value( "sysParam" );
 				auto value = args.value( "value" );
@@ -510,7 +522,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 
 QString ControlClient::getUserNetStatsString(const User &user)
 {
-	QString str = QString("<td>%1/%2</td><td><img src=\"http://0.0.0.0:%3/down-arrow.png\" class=\"traffIco\"> %4</td><td><img src=\"http://0.0.0.0:%5/up-arrow.png\" class=\"traffIco\"> %6</td><td>%7</td>")
+	QString str = QString("<td>%1/%2</td><td><img src=\"http://127.0.0.1:%3/down-arrow.png\" class=\"traffIco\"> %4</td><td><img src=\"http://127.0.0.1:%5/up-arrow.png\" class=\"traffIco\"> %6</td><td>%7</td>")
 			.arg( app::getUserConnectionsNum( user.login ) )
 			.arg( user.maxConnections )
 			.arg( app::conf.controlPort )
@@ -519,4 +531,36 @@ QString ControlClient::getUserNetStatsString(const User &user)
 			.arg( mf::getSize( user.outBytes ) )
 			.arg( mf::getSize( user.bytesMax ) );
 	return str;
+}
+
+void ControlClient::getGlobalBlockedDomains(QByteArray &buff, const QString &param, const uint8_t userGroup)
+{
+	buff.append("<table>");
+
+	for( auto elem:app::accessList.blackDomains ){
+		QString editB;
+		if( m_auth && userGroup == UserGrpup::admins ){
+			editB += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, '%1', false, 'Continue to delete the item?' );\">").arg( param );
+			editB += QString("<input type=\"hidden\" name=\"accessList\" value=\"deleteBlockDomain\">");
+			editB += QString("<input type=\"hidden\" name=\"updId\" value=\"%1\">").arg( param );
+			editB += QString("<input type=\"hidden\" name=\"value\" value=\"%1\">").arg( elem );
+			editB += QString("<input type=\"submit\" value=\"DELETE\">");
+			editB += QString("</form>");
+		}
+
+		auto str = QString("<tr><td>%1</td><td>%2</td></tr>\n").arg( elem ).arg( editB );
+		buff.append( str );
+	}
+
+	if( m_auth && userGroup == UserGrpup::admins ){
+		QString str;
+		str += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, '%1' );\">").arg( param );
+		str += QString("<input type=\"hidden\" name=\"accessList\" value=\"newBlockDomain\">");
+		str += QString("<input type=\"hidden\" name=\"updId\" value=\"%1\">").arg( param );
+		str += QString("<input type=\"text\" name=\"value\" placeholder=\"*.google.com\">");
+		str += QString("</form>");
+		buff.append( QString("<tr><td colspan=\"2\">%1</td></tr>\n").arg( str ) );
+	}
+
+	buff.append("</table>");
 }

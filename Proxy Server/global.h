@@ -53,7 +53,6 @@ struct HtmlPage{
 	QByteArray indexCSS;
 	QByteArray admin;
 	QByteArray state;
-	QByteArray config;
 	QByteArray index;
 	QByteArray downArrowIMG;
 	QByteArray upArrowIMG;
@@ -146,7 +145,6 @@ namespace app {
 	void addBytesOutTraffic(const QString &host, const QString &login, const uint32_t bytes = 0);
 	void loadResource(const QString &fileName, QByteArray &data);
 	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content);
-
 	uint8_t getHttpAuthMethodFromString(const QString &string);
 	QString getHttpAuthMethodFromCode(const uint8_t code);
 	QByteArray getNonceCode();
@@ -159,6 +157,7 @@ namespace app {
 	bool changePassword(const QString &login, const QString &newPassword);
 	bool changeMaxConnections(const QString &login, const uint32_t maxConnections);
 	bool changeMaxBytes(const QString &login, const uint32_t bytesMax);
+	void removeGlobalBlackAddr(const QString &str);
 }
 
 #endif // GLOBAL_H

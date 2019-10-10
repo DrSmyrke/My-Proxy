@@ -243,7 +243,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 			app::setLog(4,QString("ProxyClient::parsHttpProxy isTrafficLimit [%1]").arg( m_targetHostStr ));
 			targets.clear();
 			Host host;
-			host.ip.setAddress( "0.0.0.0" );
+			host.ip.setAddress( "127.0.0.1" );
 			host.port = app::conf.controlPort;
 			targets.push_back( host );
 		}
@@ -264,7 +264,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		m_pTarget->waitForConnected( 1300 );
 
 		if( m_pTarget->isOpen() ){
-			if( host.ip.toString() == "0.0.0.0" && host.port == app::conf.controlPort && m_auth ){
+			if( host.ip.toString() == "127.0.0.1" && host.port == app::conf.controlPort && m_auth ){
 				app::setLog(5,QString("ProxyClient::Send auth data from control server [%1]").arg( m_userLogin ));
 				QByteArray ba;
 				ba.append( Control::AUTH );

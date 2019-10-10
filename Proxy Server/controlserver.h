@@ -49,6 +49,7 @@ private:
 	void sendResponse(const uint16_t code, const QString &comment);
 	void processingRequest(const http::pkt &pkt);
 	QString getUserNetStatsString(const User &user);
+	void getGlobalBlockedDomains(QByteArray &buff, const QString &param, const uint8_t userGroup = UserGrpup::users);
 };
 
 #endif // CONTROLSERVER_H

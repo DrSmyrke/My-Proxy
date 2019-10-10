@@ -12,6 +12,5 @@
         <file>assets/up-arrow.png</file>
         <file>assets/state.html</file>
         <file>assets/admin.html</file>
-        <file>assets/config.html</file>
     </qresource>
 </RCC>

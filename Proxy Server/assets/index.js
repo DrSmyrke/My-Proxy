@@ -4,8 +4,11 @@ var iUpd = 0;
 
 
 
-function changeParam( form, elemUpdateID = "viewBox", hidden = false )
+function changeParam( form, elemUpdateID = "viewBox", hidden = false, confirmText = "" )
 {
+	if( confirmText.length > 0 ){
+		if( !confirm( confirmText ) ) return false;
+	}
 	var viewBoxObj = document.getElementById( elemUpdateID );
 	
 	viewBoxObj.innerHTML = '<span class="valorange">Processing...</span>';
@@ -62,7 +65,7 @@ function edit( type, value )
 	request.open( 'GET', url, false );
 	request.send( null );
 	var tmp = request.responseText.split(":>:");
-	edCont.innerHTML = tmp[1];
+	edCont.innerHTML = tmp[2];
 }
 
 requestUpd.onreadystatechange=function(){

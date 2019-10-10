@@ -77,6 +77,8 @@ input[type="text"]{
 	border: none;
 	padding: 3px;
 	background: white;
+	width: 95%;
+	margin: 1px;
 }
 input[type="button"], input[type="submit"]{ transition: none; }
 input[type=checkbox]{ display: none; }
