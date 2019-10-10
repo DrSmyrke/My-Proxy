@@ -265,7 +265,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 		if( m_pTarget->isOpen() ){
 			if( host.ip.toString() == "0.0.0.0" && host.port == app::conf.controlPort && m_auth ){
-				app::setLog(4,QString("ProxyClient::Send auth data from control server [%1]").arg( m_userLogin ));
+				app::setLog(5,QString("ProxyClient::Send auth data from control server [%1]").arg( m_userLogin ));
 				QByteArray ba;
 				ba.append( Control::AUTH );
 				ba.append( mf::toBigEndianShort( static_cast< int16_t >( m_userLogin.length() ) ) );
