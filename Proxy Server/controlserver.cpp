@@ -522,12 +522,10 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 
 QString ControlClient::getUserNetStatsString(const User &user)
 {
-	QString str = QString("<td>%1/%2</td><td><img src=\"http://127.0.0.1:%3/down-arrow.png\" class=\"traffIco\"> %4</td><td><img src=\"http://127.0.0.1:%5/up-arrow.png\" class=\"traffIco\"> %6</td><td>%7</td>")
+	QString str = QString("<td>%1/%2</td><td><img src=\"/down-arrow.png\" class=\"traffIco\"> %4</td><td><img src=\"/up-arrow.png\" class=\"traffIco\"> %6</td><td>%7</td>")
 			.arg( app::getUserConnectionsNum( user.login ) )
 			.arg( user.maxConnections )
-			.arg( app::conf.controlPort )
 			.arg( mf::getSize( user.inBytes ) )
-			.arg( app::conf.controlPort )
 			.arg( mf::getSize( user.outBytes ) )
 			.arg( mf::getSize( user.bytesMax ) );
 	return str;
