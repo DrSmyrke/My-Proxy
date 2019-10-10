@@ -1123,6 +1123,7 @@ namespace app {
 
 		for( auto user:app::conf.users ){
 			if( login == user.login ){
+				if( user.bytesMax == 0 ) break;
 				if( ( user.inBytes + user.outBytes ) >= user.bytesMax ) res = true;
 				break;
 			}
