@@ -398,7 +398,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					auto title = QString("Hi %1 [%2] v%3<br>\n").arg( m_userLogin ).arg( app::getUserGroupNameFromID( myData.group ) ).arg( app::conf.version );
 					response.append( title );
 					response.append("<table>");
-					auto netStats = QString("<tr><td>%1</td>%2</tr>\n").arg( getUserNetStatsString( myData ) );
+					auto netStats = QString("<tr><td>%1</td></tr>\n").arg( getUserNetStatsString( myData ) );
 					response.append( netStats );
 					response.append("</table>");
 					continue;
@@ -409,8 +409,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append( ":>:" );
 					response.append("<table>");
 
-					auto iter = app::conf.usersConnections.find( myData.login );
-					for( auto elem:(*iter).second ){
+					for( auto elem:app::conf.usersConnections[myData.login] ){
 						auto str = QString("<tr><td>%1</td></tr>\n").arg( elem );
 						response.append( str );
 					}

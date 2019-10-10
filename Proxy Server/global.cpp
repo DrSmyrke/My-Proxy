@@ -710,12 +710,14 @@ namespace app {
 
 	void addUserConnection(const QString &login, const QString &host)
 	{
+		app::setLog( 3, QString("addUserConnection [%1] [%3]").arg( login ).arg( host ) );
 		auto iter = app::conf.usersConnections.find( login );
 		if( iter != app::conf.usersConnections.end() ) (*iter).second.push_back( host );
 	}
 
 	void removeUserConnection(const QString &login, const QString &host)
 	{
+		app::setLog( 3, QString("removeUserConnection [%1] [%3]").arg( login ).arg( host ) );
 		auto iter = app::conf.usersConnections.find( login );
 		if( iter != app::conf.usersConnections.end() ) (*iter).second.removeOne( host );
 	}

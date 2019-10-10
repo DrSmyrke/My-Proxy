@@ -187,8 +187,6 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		return;
 	}
 
-	app::addUserConnection( m_userLogin, m_targetHostStr );
-
 	QUrl url;
 
 	switch ( m_proto ) {
@@ -298,6 +296,8 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	if( !m_tunnel ){
 		sendResponse( 502, "Bad Gateway" );
 		return;
+	}else{
+		app::addUserConnection( m_userLogin, m_targetHostStr );
 	}
 }
 
