@@ -78,7 +78,7 @@ struct Config{
 	bool settingsSave					= false;
 	bool usersSave						= false;
 	std::vector<User> users;
-	std::map<QString,uint32_t> usersConnections;
+	std::map<QString,QStringList> usersConnections;
 	QByteArray realmString				= "ProxyAuth";
 	QString version;
 	HtmlPage page;
@@ -129,7 +129,8 @@ namespace app {
 	void loadUsers();
 	void saveUsers();
 	bool isBlockedToUser(const QString &login, const Host &host);
-	void changeUserConnection(const QString &login, const int connCount);
+	void addUserConnection(const QString &login, const QString &host);
+	void removeUserConnection(const QString &login, const QString &host);
 	uint32_t getUserConnectionsNum(const QString &login);
 	uint8_t getUserGroupFromName(const QString &name);
 	QString getUserGroupNameFromID(const uint8_t id);
@@ -141,9 +142,8 @@ namespace app {
 	void updateListFromList(const QStringList &list, std::vector<Host> &data);
 	void updateListFromList(const std::vector<Host> &data, QStringList &list);
 	QString getHtmlPage(const QString &content);
-	void addBytesInTraffic(const QString &login, const uint32_t bytes = 0);
-	void addBytesOutTraffic(const QString &login, const uint32_t bytes = 0);
-	QByteArray processingRequest(const QString &method, const QMap< QByteArray, QByteArray > &args, const User &userData);
+	void addBytesInTraffic(const QString &host, const QString &login, const uint32_t bytes = 0);
+	void addBytesOutTraffic(const QString &host, const QString &login, const uint32_t bytes = 0);
 	void loadResource(const QString &fileName, QByteArray &data);
 	QByteArray getHtmlPage(const QByteArray &title, const QByteArray &content);
 

@@ -80,7 +80,6 @@ void ControlClient::slot_start()
 void ControlClient::slot_stop()
 {
 	if( m_pClient->isOpen() ) m_pClient->close();
-	if( m_auth ) app::changeUserConnection( m_userLogin, -1 );
 	emit signal_finished();
 }
 
@@ -210,7 +209,7 @@ bool ControlClient::parsInfoPkt(QByteArray &data, QByteArray &sendData)
 		case Control::USERS:
 			list.clear();
 			for( auto user:app::conf.users ){
-				str = QString("%1	%2	%3	%4	%5	%6	%7").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( user.lastLoginTimestamp ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.bytesMax ) );
+				str = QString("%1	%2	%3	%4	%5	%6	%7").arg( user.login ).arg( app::getUserConnectionsNum( user.login ) ).arg( user.maxConnections ).arg( user.lastLoginTimestamp ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.bytesMax ) );
 				list.push_back( str );
 			}
 			sendData.append( list.join( ";" ) );
@@ -386,7 +385,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append( ":>:" );
 					response.append("<table>");
 					for( auto user:app::conf.users ){
-						auto str = QString("<tr><td>%1</td><td>%2/%3</td><td><img src=\"/down-arrow.png\" class=\"traffIco\"> %4</td><td><img src=\"/up-arrow.png\" class=\"traffIco\"> %5</td><td>%6</td></tr>\n").arg( user.login ).arg( app::conf.usersConnections[user.login] ).arg( user.maxConnections ).arg( mf::getSize( user.inBytes ) ).arg( mf::getSize( user.outBytes ) ).arg( mf::getSize( user.bytesMax ) );
+						auto str = QString("<tr><td>%1</td>%2</tr>\n").arg( user.login ).arg( getUserNetStatsString( user ) );
 						response.append( str );
 					}
 					response.append("</table>");
@@ -396,8 +395,27 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					response.append( ":>:" );
 					response.append( value );
 					response.append( ":>:" );
-					auto str = QString("Hi %1 [%2] v%3<br>\n").arg( m_userLogin ).arg( app::getUserGroupNameFromID( myData.group ) ).arg( app::conf.version );
-					response.append( str );
+					auto title = QString("Hi %1 [%2] v%3<br>\n").arg( m_userLogin ).arg( app::getUserGroupNameFromID( myData.group ) ).arg( app::conf.version );
+					response.append( title );
+					response.append("<table>");
+					auto netStats = QString("<tr><td>%1</td>%2</tr>\n").arg( getUserNetStatsString( myData ) );
+					response.append( netStats );
+					response.append("</table>");
+					continue;
+				}
+				if( param == "mc" && value == "myConnections" ){
+					response.append( ":>:" );
+					response.append( value );
+					response.append( ":>:" );
+					response.append("<table>");
+
+					auto iter = app::conf.usersConnections.find( myData.login );
+					for( auto elem:(*iter).second ){
+						auto str = QString("<tr><td>%1</td></tr>\n").arg( elem );
+						response.append( str );
+					}
+
+					response.append("</table>");
 					continue;
 				}
 				if( param == "gl" && value == "globalLog" ){
@@ -489,4 +507,17 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 	}
 
 	if( error ) sendResponse( 502, "<h1>Bad Gateway</h1>" );
+}
+
+QString ControlClient::getUserNetStatsString(const User &user)
+{
+	QString str = QString("<td>%1/%2</td><td><img src=\"http://0.0.0.0:%3/down-arrow.png\" class=\"traffIco\"> %4</td><td><img src=\"http://0.0.0.0:%5/up-arrow.png\" class=\"traffIco\"> %6</td><td>%7</td>")
+			.arg( app::getUserConnectionsNum( user.login ) )
+			.arg( user.maxConnections )
+			.arg( app::conf.controlPort )
+			.arg( mf::getSize( user.inBytes ) )
+			.arg( app::conf.controlPort )
+			.arg( mf::getSize( user.outBytes ) )
+			.arg( mf::getSize( user.bytesMax ) );
+	return str;
 }

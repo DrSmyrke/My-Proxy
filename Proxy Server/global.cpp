@@ -708,23 +708,16 @@ namespace app {
 		return res;
 	}
 
-	void changeUserConnection(const QString &login, const int connCount)
+	void addUserConnection(const QString &login, const QString &host)
 	{
-		if( connCount == 0 ){
-			app::conf.usersConnections[login] = 0;
-		}else{
+		auto iter = app::conf.usersConnections.find( login );
+		if( iter != app::conf.usersConnections.end() ) (*iter).second.push_back( host );
+	}
 
-			if( connCount < 0 ){
-				uint32_t r = 0 - connCount;
-				if( app::conf.usersConnections[login] < r ){
-					app::conf.usersConnections[login] = 0;
-				}else{
-					app::conf.usersConnections[login] += connCount;
-				}
-			}else{
-				app::conf.usersConnections[login] += connCount;
-			}
-		}
+	void removeUserConnection(const QString &login, const QString &host)
+	{
+		auto iter = app::conf.usersConnections.find( login );
+		if( iter != app::conf.usersConnections.end() ) (*iter).second.removeOne( host );
 	}
 
 	uint32_t getUserConnectionsNum(const QString &login)
@@ -732,7 +725,7 @@ namespace app {
 		uint32_t num = 0;
 
 		auto iter = app::conf.usersConnections.find( login );
-		if( iter != app::conf.usersConnections.end() ) num = (*iter).second;
+		if( iter != app::conf.usersConnections.end() ) num = static_cast<uint32_t>( (*iter).second.size() );
 
 		return num;
 	}
@@ -879,9 +872,10 @@ namespace app {
 		return str;
 	}
 
-	void addBytesInTraffic(const QString &login, const uint32_t bytes)
+	void addBytesInTraffic(const QString &host, const QString &login, const uint32_t bytes)
 	{
 		if( bytes == 0 ) return;
+		if( host == "0.0.0.0" || host == "127.0.0.1" ) return;
 		for( auto &user:app::conf.users ){
 			if( login == user.login ){
 				user.inBytes += bytes;
@@ -890,111 +884,16 @@ namespace app {
 		}
 	}
 
-	void addBytesOutTraffic(const QString &login, const uint32_t bytes)
+	void addBytesOutTraffic(const QString &host, const QString &login, const uint32_t bytes)
 	{
 		if( bytes == 0 ) return;
+		if( host == "0.0.0.0" || host == "127.0.0.1" ) return;
 		for( auto &user:app::conf.users ){
 			if( login == user.login ){
 				user.outBytes += bytes;
 				break;
 			}
 		}
-	}
-
-	QByteArray processingRequest(const QString &method, const QMap<QByteArray, QByteArray> &args, const User &userData)
-	{
-		QByteArray ba;
-
-//		if( method == "get" ){
-//			ba.append("content:>:");
-//			for( auto type:args ){
-//				for( auto value:type.second ){
-//					//qDebug()<<type.first<<value<<method;
-//					//"con" "globalBlockedUrls" "get"
-//					if( type.first == "con" && value == "globalBlockedUrls" ){
-//						ba.append("globalBlockedUrls:>:");
-//						ba.append("<table>");
-//						for( auto elem:app::blackList.urls ){
-//							ba.append("<tr>");
-//							ba.append( QString("<td>" + elem + "</td>") );
-//							ba.append("</tr>");
-//						}
-//						ba.append("</table>");
-//					}
-//					if( type.first == "con" && value == "globalBlockedAddrs" ){
-//						ba.append("globalBlockedAddrs:>:");
-//						ba.append("<table>");
-//						for( auto elem:app::blackList.addrs ){
-//							ba.append("<tr>");
-//							ba.append( QString("<td>" + elem + "</td>") );
-//							ba.append("</tr>");
-//						}
-//						ba.append("</table>");
-//					}
-//					if( type.first == "con" && value == "threads" ){
-//						ba.append("threads:>:");
-//						ba.append("<table>");
-//						for( uint8_t i = 0; i < app::state.threads.size(); i++ ){
-//							ba.append("<tr>");
-//							ba.append( QString("<td>Thread #" + QString::number( i ) + ":</td><td>" + QString::number( app::state.threads.at( i ) ) + " / " + QString::number( app::conf.maxClients ) + "</td>") );
-//							ba.append("</tr>");
-//						}
-//						ba.append("</table>");
-//					}
-//					if( type.first == "con" && value == "openUrls" ){
-//						ba.append("openUrls:>:");
-//						ba.append("<table>");
-//						for( auto url:app::state.urls ){
-//							ba.append("<tr>");
-//							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"addToGlobalBlockUrl\" onClick=\"action('addToGlobalBlockUrl','" + url + "');\">" : "";
-//							ba.append( QString("<td>" + url + "</td><td>" + adminB + "</td></td>") );
-//							ba.append("</tr>");
-//						}
-//						ba.append("</table>");
-//					}
-//					if( type.first == "con" && value == "openAddrs" ){
-//						ba.append("openAddrs:>:");
-//						ba.append("<table>");
-//						for( auto addr:app::state.addrs ){
-//							ba.append("<tr>");
-//							QString adminB = ( userData.group == UserGrpup::admins ) ? "<input type=\"button\" value=\"addToGlobalBlockAddr\" onClick=\"action('addToGlobalBlockAddr','" + addr + "');\">" : "";
-//							ba.append( QString("<td>" + addr + "</td><td>" + adminB + "</td></td>") );
-//							ba.append("</tr>");
-//						}
-//						ba.append("</table>");
-//					}
-//					if( type.first == "con" && value == "users" ){
-//						ba.append("users:>:");
-//						QDateTime dt = QDateTime::currentDateTime();
-//						ba.append("<table>");
-//						for( auto user:app::conf.users ){
-//							uint32_t lastLoginSec = dt.toTime_t() - user.lastLoginTimestamp;
-//							ba.append("<tr>");
-//							ba.append( QString("<td>" + user.login + "</td><td> " + QString::number( lastLoginSec ) + " sec. ago</td>") );
-//							ba.append( QString("<td> " + QString::number( user.connections ) + " / " + QString::number( user.maxConnections ) + "</td>") );
-//							ba.append("</tr>");
-//						}
-//						ba.append("</table>");
-//					}
-//				}
-//			}
-//		}
-
-//		if( method == "set" ){
-//			ba.append("OK");
-//			if( args.count("param") > 0 && args.count("value") ){
-//				auto param = args.at("param")[0];
-//				auto value = args.at("value");
-//				if( param == "addToGlobalBlockUrl" && userData.group == UserGrpup::admins ){
-//					for( auto elem:value ) app::addGlobalBlackUrl( elem );
-//				}
-//				if( param == "addToGlobalBlockAddr" && userData.group == UserGrpup::admins ){
-//					for( auto elem:value ) app::addGlobalBlackAddr( elem );
-//				}
-//			}
-//		}
-
-		return ba;
 	}
 
 	void loadResource(const QString &fileName, QByteArray &data)

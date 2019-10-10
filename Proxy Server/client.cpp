@@ -41,9 +41,7 @@ void Client::slot_stop()
 	if( m_pTarget->isOpen() ) m_pTarget->close();
 	if( m_pClient->isOpen() ) m_pClient->close();
 
-	if( m_auth ){
-		app::changeUserConnection( m_userLogin, -1 );
-	}
+	if( m_auth ) app::removeUserConnection( m_userLogin, m_targetHostStr );
 
 	emit signal_finished();
 }
@@ -58,7 +56,7 @@ void Client::slot_clientReadyRead()
 			sendToTarget( buff );
 			//TODO: Переделать лог
 			app::setLog(5,QString("ProxyClient::slot_targetReadyRead [%1:%2]").arg(m_pTarget->peerAddress().toString()).arg(m_pTarget->peerPort()));
-			if( m_auth && (m_pTarget->peerAddress().toString() != "127.0.0.1" && m_pTarget->peerPort() != app::conf.controlPort) ) app::addBytesOutTraffic( m_userLogin, buff.size() );
+			if( m_auth ) app::addBytesOutTraffic( m_pTarget->peerAddress().toString(), m_userLogin, buff.size() );
 			buff.clear();
 		}
 	}
@@ -87,7 +85,7 @@ void Client::slot_targetReadyRead()
 		QByteArray buff;
 		buff.append( m_pTarget->read( 1024 ) );
 		sendToClient( buff );
-		if( m_auth && (m_pTarget->peerAddress().toString() != "127.0.0.1" && m_pTarget->peerPort() != app::conf.controlPort) ) app::addBytesInTraffic( m_userLogin, buff.size() );
+		if( m_auth ) app::addBytesInTraffic( m_pTarget->peerAddress().toString(), m_userLogin, buff.size() );
 	}
 }
 
@@ -181,15 +179,15 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		return;
 	}
 
-	app::changeUserConnection( m_userLogin, 1 );
-
 	// Превышение числа коннектов на пользователя
 	if( app::isMaxConnections( m_userLogin ) ){
-		app::setLog(3,QString("ProxyClient::parsHttpProxy Too Many Requests [%1] [%2]").arg( m_userLogin ).arg(app::getUserConnectionsNum( m_userLogin )));
+		app::setLog(3,QString("ProxyClient::parsHttpProxy Too Many Requests"));
 		sendResponse(429,"Too Many Requests");
 		slot_stop();
 		return;
 	}
+
+	app::addUserConnection( m_userLogin, m_targetHostStr );
 
 	QUrl url;
 

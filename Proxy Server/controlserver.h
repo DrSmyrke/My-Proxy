@@ -48,6 +48,7 @@ private:
 	void sendRawResponse(const uint16_t code, const QString &comment, const QByteArray &data, const QString &mimeType);
 	void sendResponse(const uint16_t code, const QString &comment);
 	void processingRequest(const http::pkt &pkt);
+	QString getUserNetStatsString(const User &user);
 };
 
 #endif // CONTROLSERVER_H
