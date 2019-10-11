@@ -594,16 +594,16 @@ namespace app {
 	void loadUsers()
 	{
 		if( app::conf.usersFile.isEmpty() ){
-			app::setLog( 3, QString("LOAD USER FILE [%1] ... ERROR not defined").arg( app::conf.usersFile ) );
+			app::setLog( 2, QString("LOAD USER FILE [%1] ... ERROR not defined").arg( app::conf.usersFile ) );
 			return;
 		}
 
 		if( !mf::checkFile( app::conf.usersFile.toUtf8().data() ) ){
-			app::setLog( 3, QString("LOAD USER FILE [%1] ... ERROR not found").arg( app::conf.usersFile ) );
+			app::setLog( 2, QString("LOAD USER FILE [%1] ... ERROR not found").arg( app::conf.usersFile ) );
 			return;
 		}
 
-		app::setLog( 4, QString("LOAD USER FILE [%1] ...").arg( app::conf.usersFile ) );
+		app::setLog( 3, QString("LOAD USER FILE [%1] ...").arg( app::conf.usersFile ) );
 
 		app::conf.users.clear();
 
@@ -626,8 +626,6 @@ namespace app {
 			app::updateListFromList( accessList, user.accessList );
 			app::updateListFromList( blockList, user.blockList );
 
-			app::setLog( 5, QString("      USER PARAM [%1][%2][%3]").arg( user.group ).arg( user.pass ).arg( user.maxConnections ) );
-
 			app::conf.users.push_back( user );
 
 			users.endGroup();
@@ -637,11 +635,11 @@ namespace app {
 	void saveUsers()
 	{
 		if( app::conf.usersFile.isEmpty() ){
-			app::setLog( 3, QString("SAVE USER FILE [%1] ... ERROR not defined").arg( app::conf.usersFile ) );
+			app::setLog( 2, QString("SAVE USER FILE [%1] ... ERROR not defined").arg( app::conf.usersFile ) );
 			return;
 		}
 
-		app::setLog( 4, QString("SAVE USER FILE [%1] ...").arg( app::conf.usersFile ) );
+		app::setLog( 3, QString("SAVE USER FILE [%1] ...").arg( app::conf.usersFile ) );
 
 		QSettings users( app::conf.usersFile, QSettings::IniFormat );
 		users.clear();

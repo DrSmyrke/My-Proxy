@@ -337,7 +337,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 						response.append( QString("<tr><td>Password:</td><td>%1</td></tr>").arg( changePass ) );
 					}
 					response.append( QString("<tr><td>MaxConnections:</td><td>%1</td></tr>").arg( maxConnections ) );
-					response.append( QString("<tr><td>inBytesMax:</td><td>%1</td></tr>").arg( bytesMax ) );
+					response.append( QString("<tr><td>bytesMax:</td><td>%1</td></tr>").arg( bytesMax ) );
 					response.append("</table>");
 				}
 				if( param == "serverSettings" && m_auth && myData.group == UserGrpup::admins ){

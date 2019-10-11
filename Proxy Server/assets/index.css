@@ -73,11 +73,19 @@ tr:last-child{ border: none; }
 	text-align: left;
 	padding: 5px;
 }
+.code{
+	font-family: Arial;
+	-webkit-touch-callout: default; /* iOS Safari */
+    -webkit-user-select: text; /* Safari */
+     -khtml-user-select: text; /* Konqueror HTML */
+       -moz-user-select: text; /* Firefox */
+        -ms-user-select: text; /* Internet Explorer/Edge */
+            user-select: text; /* Non-prefixed version, currently */
+}
 input[type="text"]{
 	border: none;
 	padding: 3px;
 	background: white;
-	width: 95%;
 	margin: 1px;
 }
 input[type="button"], input[type="submit"]{ transition: none; }

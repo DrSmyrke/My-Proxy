@@ -88,7 +88,7 @@ function update()
 	if( urlArray.length == 0 ) return;
 	if( iUpd >= urlArray.length ){
 		iUpd = 0;
-		setTimeout( "update()", 60000 );
+		setTimeout( "update()", 10000 );
 		return;
 	}
 	var url = urlArray[iUpd++];

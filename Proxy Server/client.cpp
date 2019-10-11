@@ -22,18 +22,18 @@ Client::Client(qintptr descriptor, QObject *parent)
 	connect( m_pClient, &QTcpSocket::readyRead, this, &Client::slot_clientReadyRead);
 
 	connect( m_pClient, &QTcpSocket::disconnected, this, [this](){
-		app::setLog(5,QString("Client::Client disconnected"));
+		app::setLog(6,QString("Client::Client disconnected"));
 		slot_stop();
 	});
 	connect( m_pTarget, &QTcpSocket::disconnected, this, [this](){
-		app::setLog(5,QString("Client::Target disconnected"));
+		app::setLog(6,QString("Client::Target disconnected"));
 		slot_stop();
 	});
 }
 
 void Client::run()
 {
-	app::setLog(5,QString("Client::Client connected"));
+	app::setLog( 4, QString("Client::Client connected [%1:%2]").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ) );
 }
 
 void Client::slot_stop()
@@ -156,8 +156,8 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 
 	// Обработка блокировки и отключения клиента
 	if( app::isBan( m_pTarget->peerAddress() ) ){
-		app::setLog( 3, QString("ProxyClient::parsHttpProxy client is isBan %1 %2").arg( m_userLogin ).arg( m_pClient->peerAddress().toString() ));
-		sendResponse( 423, "Locked" );
+		app::setLog( 2, QString("ProxyClient::parsHttpProxy client is isBan %1 %2").arg( m_userLogin ).arg( m_pClient->peerAddress().toString() ));
+		sendNoAccess();
 		slot_stop();
 		return;
 	}
@@ -165,25 +165,12 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	if( !pkt.head.proxyAuthorization.isEmpty() ) parsAuth( pkt.head.proxyAuthorization, pkt.head.request.method );
 	if( !m_auth ){
 		if( m_failedAuthorization >= app::conf.maxFailedAuthorization ){
-			if( m_proto == Client::Proto::HTTPS ){
-				sendNoAccess();
-			}
-			if( m_proto == Client::Proto::HTTP ){
-				moveToLockedPage( pkt.head.request.target );
-			}
-
+			sendResponse( 423, "Locked" );
+			slot_stop();
 			return;
 		}
 		m_failedAuthorization++;
 		sendNoAuth();
-		return;
-	}
-
-	// Превышение числа коннектов на пользователя
-	if( app::isMaxConnections( m_userLogin ) ){
-		app::setLog(3,QString("ProxyClient::parsHttpProxy Too Many Requests"));
-		sendResponse(429,"Too Many Requests");
-		slot_stop();
 		return;
 	}
 
@@ -221,7 +208,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	}
 
 	if( m_targetHostStr.isEmpty() ){
-		app::setLog(3,QString("ProxyClient::parsHttpProxy Bad Request [%1]").arg( m_targetHostStr ));
+		app::setLog(4,QString("ProxyClient::parsHttpProxy Bad Request [%1]").arg( m_targetHostStr ));
 		sendResponse( 400, "Bad Request" );
 		return;
 	}
@@ -249,6 +236,21 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		}
 	}
 
+	// Превышение числа коннектов на пользователя
+	if( app::isMaxConnections( m_userLogin ) ){
+		bool find = false;
+		if( targets.size() == 1 ){
+			// Игнорируем ограничение по количеству подключения для входа в вебморду
+			if( targets[0].ip.toString() == "127.0.0.1" && targets[0].port == app::conf.controlPort && m_auth ) find = true;
+		}
+		if( !find ){
+			app::setLog(4,QString("ProxyClient::parsHttpProxy Too Many Requests [%1]").arg( m_userLogin ));
+			sendResponse(429,"Too Many Requests");
+			slot_stop();
+			return;
+		}
+	}
+
 	// Наконец то пробуем законнектиться
 
 	for( auto host:targets ){
@@ -258,12 +260,13 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 			slot_stop();
 			return;
 		}
-		app::setLog(5,QString("ProxyClient::parsHttpProxy request connect [%1]->[%2:%3]").arg(m_userLogin).arg(host.ip.toString()).arg(host.port));
+		app::setLog(4,QString("ProxyClient::parsHttpProxy request connect [%1]->[%2:%3]").arg(m_userLogin).arg(host.ip.toString()).arg(host.port));
 
 		m_pTarget->connectToHost( host.ip, host.port );
 		m_pTarget->waitForConnected( 1300 );
 
 		if( m_pTarget->isOpen() ){
+			app::setLog( 4,QString("ProxyClient::parsHttpProxy connection accepted").arg( m_userLogin ));
 			if( host.ip.toString() == "127.0.0.1" && host.port == app::conf.controlPort && m_auth ){
 				app::setLog(5,QString("ProxyClient::Send auth data from control server [%1]").arg( m_userLogin ));
 				QByteArray ba;
@@ -297,6 +300,8 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		sendResponse( 502, "Bad Gateway" );
 		return;
 	}else{
+		if( m_proto == Client::Proto::HTTP )	m_targetHostStr = QString("http://%1").arg( m_targetHostStr );
+		if( m_proto == Client::Proto::HTTPS )	m_targetHostStr = QString("https://%1%2").arg( m_targetHostStr ).arg( pkt.head.request.target );
 		app::addUserConnection( m_userLogin, m_targetHostStr );
 	}
 }
@@ -306,7 +311,7 @@ void Client::parsAuth(const QString &string, const QString &method)
 	app::setLog(5,QString("ProxyClient::parsAuth [%1]").arg(string));
 
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(5,QString("ProxyClient::parsAuth unknown proto"));
+		app::setLog(2,QString("ProxyClient::parsAuth unknown proto"));
 		return;
 	}
 
@@ -365,7 +370,7 @@ void Client::parsAuth(const QString &string, const QString &method)
 void Client::sendNoAuth()
 {
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(5,QString("ProxyClient::sendNoAuth unknown proto"));
+		app::setLog(2,QString("ProxyClient::sendNoAuth unknown proto"));
 		return;
 	}
 
@@ -385,7 +390,7 @@ void Client::sendNoAuth()
 void Client::sendNoAccess()
 {
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(5,QString("ProxyClient::sendNoAccess unknown proto"));
+		app::setLog(2,QString("ProxyClient::sendNoAccess unknown proto"));
 		return;
 	}
 
@@ -408,7 +413,7 @@ void Client::sendNoAccess()
 void Client::moveToLockedPage(const QString &reffer)
 {
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(5,QString("ProxyClient::moveToLockedPage unknown proto"));
+		app::setLog(2,QString("ProxyClient::moveToLockedPage unknown proto"));
 		return;
 	}
 
