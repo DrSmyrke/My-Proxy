@@ -482,14 +482,6 @@ void Client::socksPktProcessing(QByteArray &buff)
 			sendNoAccess();
 			return;
 		}
-		if( app::isBan( m_pClient->peerAddress() ) ){
-			sendNoAccess();
-			return;
-		}
-		if( !app::isSocks4Access( m_pClient->peerAddress() ) ){
-			sendNoAccess();
-			return;
-		}
 
 		Host targetHost;
 		targetHost.port = static_cast<uint8_t>( buff.at( 2 ) ) << 8;
@@ -505,6 +497,17 @@ void Client::socksPktProcessing(QByteArray &buff)
 
 		m_targetHostPort = targetHost.port;
 		m_targetHostStr = QString("%1:%2").arg( targetHost.ip.toString() ).arg( targetHost.port );
+
+		if( app::isBan( m_pClient->peerAddress() ) ){
+			app::setLog( 4, QString("ProxyClient::socksPktProcessing client is ban %1:%2").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ));
+			sendNoAccess();
+			return;
+		}
+		if( !app::isSocks4Access( m_pClient->peerAddress() ) ){
+			app::setLog( 4, QString("ProxyClient::socksPktProcessing client is notAccess to SOCKS4 proto %1:%2").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ));
+			sendNoAccess();
+			return;
+		}
 
 		if( app::isBlockHost( targetHost ) ){
 			app::setLog( 4, QString("ProxyClient::socksPktProcessing client is isBlockHost %1:%2").arg( targetHost.ip.toString() ).arg( targetHost.port ));
