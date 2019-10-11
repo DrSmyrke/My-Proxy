@@ -504,7 +504,7 @@ void Client::socksPktProcessing(QByteArray &buff)
 			return;
 		}
 		if( !app::isSocks4Access( m_pClient->peerAddress() ) ){
-			app::setLog( 4, QString("ProxyClient::socksPktProcessing client is notAccess to SOCKS4 proto %1:%2").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ));
+			app::setLog( 4, QString("ProxyClient::socksPktProcessing client not access to SOCKS4 %1:%2").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ));
 			sendNoAccess();
 			return;
 		}

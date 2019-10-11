@@ -1,6 +1,8 @@
 #include "server.h"
 
-Server::Server(QObject *parent) : QTcpServer(parent)
+Server::Server(QObject *parent)
+	: QTcpServer(parent)
+	, m_updDynBIPcounter(0)
 {
 	app::setLog( 0, QString("SERVER CREATING v%1 ...").arg(app::conf.version) );
 
@@ -59,4 +61,10 @@ void Server::slot_timer()
 
 	// сохранение настроек
 	app::saveSettings();
+
+	if( m_updDynBIPcounter++ >= 3600 ){
+		// Обновление динамического списка адресов по черным доменам раз в 1 час
+		app::updateBlackWhiteDomains();
+		m_updDynBIPcounter = 0;
+	}
 }

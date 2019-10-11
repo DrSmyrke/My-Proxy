@@ -25,6 +25,7 @@ private slots:
 	void slot_timer();
 private:
 	QTimer* m_pTimer;
+	uint16_t m_updDynBIPcounter;
 };
 
 #endif // SERVER_H
