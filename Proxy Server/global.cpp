@@ -838,6 +838,7 @@ namespace app {
 					host.port = tmp[1].toUShort();
 				}
 			}
+			if( ip.indexOf("*.") == 0 ) ip = ip.right( ip.length() - 2 );
 			if( !host.ip.setAddress( ip ) ){
 				app::setLog( 4, QString("Update list ips is domainName [%1]").arg( host.port ) );
 				app::getIPsFromDomName( ip, host.port, data );
