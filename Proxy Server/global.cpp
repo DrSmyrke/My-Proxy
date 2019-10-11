@@ -1100,13 +1100,14 @@ namespace app {
 		QHostAddress ip;
 		if( !ip.setAddress( str ) ) return;
 		app::accessList.socks4Access.push_back( ip );
+		app::accessList.accessFileSave = true;
 	}
 
 	void removeSocks4AccessIP(const QString &str)
 	{
 		QHostAddress ip;
 		if( !ip.setAddress( str ) ) return;
-		app::accessList.socks4Access.removeAll( ip );
+		if( app::accessList.socks4Access.removeAll( ip ) ) app::accessList.accessFileSave = true;
 	}
 
 }
