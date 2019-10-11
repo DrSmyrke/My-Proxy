@@ -19,8 +19,8 @@ public:
 			AUTH		= 0x01,
 			HTTP,
 			HTTPS,
-			SOCKS4,
-			SOCKS5,
+			SOCKS4		= 0x04,
+			SOCKS5		= 0x05,
 
 		};
 	};
@@ -54,6 +54,8 @@ private:
 	void sendNoAuth();
 	void sendNoAccess();
 	void moveToLockedPage(const QString &reffer);
+	bool isSocksRequest(const QByteArray &buff);
+	void socksPktProcessing(QByteArray &buff);
 };
 
 #endif // CLIENT_H

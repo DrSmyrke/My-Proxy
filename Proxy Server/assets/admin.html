@@ -8,9 +8,14 @@
 	<div class="content" id="globalBlockedDomains"></div>
 </div>
 
+<div class="block">
+	<div class="legend">Socks4 Access IP`s</div>
+	<div class="content" id="socks4AccessList"></div>
+</div>
+
 <script type="text/javascript">
 var urlArray = new Array(
-	"/get?serverSettings&globalBlockedDomains",
+	"/get?serverSettings&globalBlockedDomains&socks4AccessList",
 );
 
 update();

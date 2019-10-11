@@ -91,7 +91,7 @@ struct BanData{
 };
 
 struct AccessList{
-	std::vector<QHostAddress> socks4Access;
+	QList<QHostAddress> socks4Access;
 	QStringList blackDomains;
 	std::vector<Host> blackIPs;
 	std::vector<Host> blackIPsDynamic;
@@ -158,6 +158,8 @@ namespace app {
 	bool changeMaxConnections(const QString &login, const uint32_t maxConnections);
 	bool changeMaxBytes(const QString &login, const uint32_t bytesMax);
 	void removeGlobalBlackAddr(const QString &str);
+	void addSocks4AccessIP(const QString &str);
+	void removeSocks4AccessIP(const QString &str);
 }
 
 #endif // GLOBAL_H

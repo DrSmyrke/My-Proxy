@@ -50,6 +50,7 @@ private:
 	void processingRequest(const http::pkt &pkt);
 	QString getUserNetStatsString(const User &user);
 	void getGlobalBlockedDomains(QByteArray &buff, const QString &param, const uint8_t userGroup = UserGrpup::users);
+	void getSocks4AccessList(QByteArray &buff, const QString &param, const uint8_t userGroup = UserGrpup::users);
 };
 
 #endif // CONTROLSERVER_H

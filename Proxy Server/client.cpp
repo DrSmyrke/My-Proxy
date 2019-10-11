@@ -34,6 +34,7 @@ Client::Client(qintptr descriptor, QObject *parent)
 void Client::run()
 {
 	app::setLog( 4, QString("Client::Client connected [%1:%2]").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ) );
+	m_proto = Client::Proto::UNKNOWN;
 }
 
 void Client::slot_stop()
@@ -66,6 +67,13 @@ void Client::slot_clientReadyRead()
 
 	app::setLog(5,QString("ProxyClient::slot_clientReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
 	app::setLog(6,QString("ProxyClient::slot_clientReadyRead [%3]").arg(QString(buff.toHex())));
+
+	if( m_proto == Client::Proto::UNKNOWN ) isSocksRequest( buff );
+	if( m_proto == Client::Proto::SOCKS4 || m_proto == Client::Proto::SOCKS5 ){
+		socksPktProcessing( buff );
+		return;
+	}
+
 
 	auto pkt = http::parsPkt( buff );
 
@@ -394,6 +402,16 @@ void Client::sendNoAccess()
 		return;
 	}
 
+	if( m_proto == Client::Proto::SOCKS4 ){
+		QByteArray response;
+		response.append( Client::Proto::SOCKS4 );
+		response.append( 0x5b );
+
+		sendToClient( response );
+		app::setLog(3,QString("ProxyClient::sendNoAccess [%1:%2]").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ));
+		slot_stop();
+	}
+
 	if( m_proto == Client::Proto::HTTP || m_proto == Client::Proto::HTTPS ){
 		http::pkt pkt;
 		pkt.head.response.code = 423;
@@ -405,7 +423,7 @@ void Client::sendNoAccess()
 		pkt.body.rawData.append( app::getHtmlPage("Service page", ba) );
 		sendToClient( http::buildPkt(pkt) );
 		app::addBAN( m_pClient->peerAddress() );
-		app::setLog(3,QString("ProxyClient::sendNoAccess [%1]").arg(m_pClient->peerAddress().toString()));
+		app::setLog(3,QString("ProxyClient::sendNoAccess [%1:%2]").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ));
 		slot_stop();
 	}
 }
@@ -427,5 +445,106 @@ void Client::moveToLockedPage(const QString &reffer)
 		sendToClient( http::buildPkt(pkt) );
 
 		app::setLog(3,QString("ProxyClient::moveToLockedPage [%1]").arg(m_pClient->peerAddress().toString()));
+	}
+}
+
+bool Client::isSocksRequest(const QByteArray &buff)
+{
+	bool res = false;
+
+	if( buff[0] == Client::Proto::SOCKS4 ){
+		if( buff[1] == 0x01 || buff[1] == 0x02 ){
+			res = true;
+			m_proto = Client::Proto::SOCKS4;
+		}
+	}
+	if( buff[0] == Client::Proto::SOCKS5 ){
+		uint8_t len = static_cast<uint8_t>( buff[1] ) + 2;
+		if( buff.size() == len ){
+			res = true;
+			m_proto = Client::Proto::SOCKS5;
+		}
+	}
+
+	return res;
+}
+
+void Client::socksPktProcessing(QByteArray &buff)
+{
+	if( m_proto != Client::Proto::SOCKS4 && m_proto != Client::Proto::SOCKS5 ) return;
+
+	if( m_proto == Client::Proto::SOCKS4 ){
+		if( static_cast<uint8_t>( buff.at( 1 ) ) != 0x01 ){
+			sendNoAccess();
+			return;
+		}
+		if( buff.size() < 8 ){
+			sendNoAccess();
+			return;
+		}
+		if( app::isBan( m_pClient->peerAddress() ) ){
+			sendNoAccess();
+			return;
+		}
+		if( !app::isSocks4Access( m_pClient->peerAddress() ) ){
+			sendNoAccess();
+			return;
+		}
+
+		Host targetHost;
+		targetHost.port = static_cast<uint8_t>( buff.at( 2 ) ) << 8;
+		targetHost.port += static_cast<uint8_t>( buff.at( 3 ) );
+		uint32_t ip = static_cast<uint8_t>( buff.at( 4 ) ) << 24;
+		ip += static_cast<uint8_t>( buff.at( 5 ) ) << 16;
+		ip += static_cast<uint8_t>( buff.at( 6 ) ) << 8;
+		ip += static_cast<uint8_t>( buff.at( 7 ) );
+
+		targetHost.ip.setAddress( ip );
+
+		app::setLog( 4, QString("ProxyClient::socksPktProcessing SOCKS4 request [%1:%2] -> [%3:%4]").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ).arg( targetHost.ip.toString() ).arg( targetHost.port ));
+
+		m_targetHostPort = targetHost.port;
+		m_targetHostStr = QString("%1:%2").arg( targetHost.ip.toString() ).arg( targetHost.port );
+
+		if( app::isBlockHost( targetHost ) ){
+			app::setLog( 4, QString("ProxyClient::socksPktProcessing client is isBlockHost %1:%2").arg( targetHost.ip.toString() ).arg( targetHost.port ));
+			sendNoAccess();
+			return;
+		}
+
+		m_pTarget->connectToHost( targetHost.ip, targetHost.port );
+		m_pTarget->waitForConnected( 1300 );
+
+		if( m_pTarget->isOpen() ){
+			app::setLog( 4,QString("ProxyClient::socksPktProcessing connection accepted [%1:%2]").arg( targetHost.ip.toString() ).arg( targetHost.port ));
+//			if( targetHost.ip.toString() == "127.0.0.1" && targetHost.port == app::conf.controlPort && m_auth ){
+//				app::setLog(5,QString("ProxyClient::Send auth data from control server [%1]").arg( m_userLogin ));
+//				QByteArray ba;
+//				ba.append( Control::AUTH );
+//				ba.append( mf::toBigEndianShort( static_cast< int16_t >( m_userLogin.length() ) ) );
+//				ba.append( m_userLogin );
+//				ba.append( mf::toBigEndianShort( static_cast< int16_t >( m_userPass.length() ) ) );
+//				ba.append( m_userPass );
+//				ba.append( '\0' );
+//				sendToTarget( ba );
+//			}
+
+			m_tunnel = true;
+
+			QByteArray response;
+			response[0] = 0x00;
+			response[1] = 0x5a;
+			response[2] = 0x00;
+			response[3] = 0x00;
+			response[4] = 0x00;
+			response[5] = 0x00;
+			response[6] = 0x00;
+			response[7] = 0x00;
+			sendToClient( response );
+		}else{
+			sendNoAccess();
+		}
+
+		return;
 	}
 }

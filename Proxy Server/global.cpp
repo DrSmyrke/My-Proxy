@@ -1089,10 +1089,24 @@ namespace app {
 
 	void removeGlobalBlackAddr(const QString &str)
 	{
-		if( app::accessList.blackDomains.removeOne( str ) ){
+		if( app::accessList.blackDomains.removeAll( str ) ){
 			app::accessList.accessFileSave = true;
 			app::updateBlackWhiteDomains();
 		}
+	}
+
+	void addSocks4AccessIP(const QString &str)
+	{
+		QHostAddress ip;
+		if( !ip.setAddress( str ) ) return;
+		app::accessList.socks4Access.push_back( ip );
+	}
+
+	void removeSocks4AccessIP(const QString &str)
+	{
+		QHostAddress ip;
+		if( !ip.setAddress( str ) ) return;
+		app::accessList.socks4Access.removeAll( ip );
 	}
 
 }

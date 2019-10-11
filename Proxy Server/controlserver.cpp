@@ -412,6 +412,11 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 					getGlobalBlockedDomains( response, QString( param ), myData.group );
 					continue;
 				}
+				if( param == "socks4AccessList" ){
+					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
+					getSocks4AccessList( response, QString( param ), myData.group );
+					continue;
+				}
 				if( param == "globalLog" ){
 					response.append( QString(":>:%1:>:").arg( QString( param ) ) );
 					QFile file;
@@ -442,6 +447,17 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 				if( param == "deleteBlockDomain" ){
 					app::removeGlobalBlackAddr( value );
 					getGlobalBlockedDomains( response, updId, myData.group );
+					find = true;
+				}
+
+				if( param == "newSocks4AccessIP" ){
+					app::addSocks4AccessIP( value );
+					getSocks4AccessList( response, updId, myData.group );
+					find = true;
+				}
+				if( param == "deleteSocks4AccessIP" ){
+					app::removeSocks4AccessIP( value );
+					getSocks4AccessList( response, updId, myData.group );
 					find = true;
 				}
 
@@ -556,6 +572,38 @@ void ControlClient::getGlobalBlockedDomains(QByteArray &buff, const QString &par
 		str += QString("<input type=\"hidden\" name=\"accessList\" value=\"newBlockDomain\">");
 		str += QString("<input type=\"hidden\" name=\"updId\" value=\"%1\">").arg( param );
 		str += QString("<input type=\"text\" name=\"value\" placeholder=\"*.google.com\">");
+		str += QString("</form>");
+		buff.append( QString("<tr><td colspan=\"2\">%1</td></tr>\n").arg( str ) );
+	}
+
+	buff.append("</table>");
+}
+
+void ControlClient::getSocks4AccessList(QByteArray &buff, const QString &param, const uint8_t userGroup)
+{
+	buff.append("<table>");
+
+	for( auto elem:app::accessList.socks4Access ){
+		QString editB;
+		if( m_auth && userGroup == UserGrpup::admins ){
+			editB += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, '%1', false, 'Continue to delete the item?' );\">").arg( param );
+			editB += QString("<input type=\"hidden\" name=\"accessList\" value=\"deleteSocks4AccessIP\">");
+			editB += QString("<input type=\"hidden\" name=\"updId\" value=\"%1\">").arg( param );
+			editB += QString("<input type=\"hidden\" name=\"value\" value=\"%1\">").arg( elem.toString() );
+			editB += QString("<input type=\"submit\" value=\"DELETE\">");
+			editB += QString("</form>");
+		}
+
+		auto str = QString("<tr><td>%1</td><td>%2</td></tr>\n").arg( elem.toString() ).arg( editB );
+		buff.append( str );
+	}
+
+	if( m_auth && userGroup == UserGrpup::admins ){
+		QString str;
+		str += QString("<form class=\"form\" action=\"/set\" onSubmit=\"return changeParam( this, '%1' );\">").arg( param );
+		str += QString("<input type=\"hidden\" name=\"accessList\" value=\"newSocks4AccessIP\">");
+		str += QString("<input type=\"hidden\" name=\"updId\" value=\"%1\">").arg( param );
+		str += QString("<input type=\"text\" name=\"value\" placeholder=\"192.168.0.0\">");
 		str += QString("</form>");
 		buff.append( QString("<tr><td colspan=\"2\">%1</td></tr>\n").arg( str ) );
 	}
