@@ -266,7 +266,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		m_pTarget->waitForConnected( 1300 );
 
 		if( m_pTarget->isOpen() ){
-			app::setLog( 4,QString("ProxyClient::parsHttpProxy connection accepted").arg( m_userLogin ));
+			app::setLog( 4,QString("ProxyClient::parsHttpProxy connection accepted [%1] [%2:%3]").arg( m_userLogin ).arg( host.ip.toString() ).arg( host.port ));
 			if( host.ip.toString() == "127.0.0.1" && host.port == app::conf.controlPort && m_auth ){
 				app::setLog(5,QString("ProxyClient::Send auth data from control server [%1]").arg( m_userLogin ));
 				QByteArray ba;
@@ -300,8 +300,8 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 		sendResponse( 502, "Bad Gateway" );
 		return;
 	}else{
-		if( m_proto == Client::Proto::HTTP )	m_targetHostStr = QString("http://%1").arg( m_targetHostStr );
-		if( m_proto == Client::Proto::HTTPS )	m_targetHostStr = QString("https://%1%2").arg( m_targetHostStr ).arg( pkt.head.request.target );
+		if( m_proto == Client::Proto::HTTP )	m_targetHostStr = QString("http://%1%2").arg( m_targetHostStr ).arg( pkt.head.request.target );
+		if( m_proto == Client::Proto::HTTPS )	m_targetHostStr = QString("https://%1").arg( m_targetHostStr );
 		app::addUserConnection( m_userLogin, m_targetHostStr );
 	}
 }
