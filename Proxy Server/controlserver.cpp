@@ -69,7 +69,7 @@ ControlClient::ControlClient(qintptr descriptor, QObject *parent)
 
 	connect( m_pClient, &QTcpSocket::readyRead, this, &ControlClient::slot_clientReadyRead);
 	connect( m_pClient, &QTcpSocket::disconnected, this, [this](){
-		app::setLog(5,QString("ControlClient::ControlClient disconnected"));
+		//app::setLog(5,QString("ControlClient::ControlClient disconnected"));
 		slot_stop();
 	});
 }
@@ -121,15 +121,15 @@ void ControlClient::slot_clientReadyRead()
 		pkt = http::parsPkt( buff );
 	}
 	if( pkt.next ){
-		app::setLog( 5, QString("ControlClient::slot_clientReadyRead packet small") );
+		//app::setLog( 5, QString("ControlClient::slot_clientReadyRead packet small") );
 		m_buff.append( buff );
 		return;
 	}
 	if( pkt.valid ){
 		processingRequest( pkt );
 	}else{
-		app::setLog( 3, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2][%3]").arg( QString( buff ) ).arg( pkt.head.valid ).arg( pkt.body.valid ) );
-		app::setLog( 3, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2]").arg( pkt.head.contLen ).arg( pkt.body.rawData.size() ) );
+		//app::setLog( 3, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2][%3]").arg( QString( buff ) ).arg( pkt.head.valid ).arg( pkt.body.valid ) );
+		//app::setLog( 3, QString("ControlClient::slot_clientReadyRead packet is NOT valid [%1][%2]").arg( pkt.head.contLen ).arg( pkt.body.rawData.size() ) );
 	}
 }
 
@@ -140,7 +140,7 @@ void ControlClient::sendToClient(const QByteArray &data)
 	if( m_pClient->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
-	app::setLog(5,QString("Client::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data.toHex())));
+	//app::setLog(5,QString("Client::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data.toHex())));
 }
 
 bool ControlClient::parsAuthPkt(QByteArray &data)
@@ -236,7 +236,7 @@ void ControlClient::sendRawResponse(const uint16_t code, const QString &comment,
 	pkt.head.response.comment = comment;
 	if( !mimeType.isEmpty() ) pkt.head.contType = mimeType;
 	pkt.body.rawData.append( data );
-	app::setLog( 5, QString("ControlClient::sendRawResponse [%1]").arg(pkt.head.response.code) );
+	//app::setLog( 5, QString("ControlClient::sendRawResponse [%1]").arg(pkt.head.response.code) );
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -246,7 +246,7 @@ void ControlClient::sendResponse(const uint16_t code, const QString &comment)
 	pkt.head.response.code = code;
 	pkt.head.response.comment = comment;
 	pkt.body.rawData.append( app::getHtmlPage("Service page",comment.toLatin1()) );
-	app::setLog( 5, QString("ControlClient::sendResponse [%1]").arg(pkt.head.response.code) );
+	//app::setLog( 5, QString("ControlClient::sendResponse [%1]").arg(pkt.head.response.code) );
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -255,7 +255,7 @@ void ControlClient::processingRequest(const http::pkt &pkt)
 	bool error = true;
 	QString method;
 
-	app::setLog( 5, QString("ControlClient::processingRequest [%1]").arg( pkt.head.request.target ) );
+	//app::setLog( 5, QString("ControlClient::processingRequest [%1]").arg( pkt.head.request.target ) );
 
 	if( pkt.head.request.target == "/buttons.css" ){
 		sendRawResponse( 200, "OK", app::conf.page.buttonsCSS, "text/css; charset=utf-8" );

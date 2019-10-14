@@ -22,18 +22,18 @@ Client::Client(qintptr descriptor, QObject *parent)
 	connect( m_pClient, &QTcpSocket::readyRead, this, &Client::slot_clientReadyRead);
 
 	connect( m_pClient, &QTcpSocket::disconnected, this, [this](){
-		app::setLog(6,QString("Client::Client disconnected"));
+		//app::setLog(6,QString("Client::Client disconnected"));
 		slot_stop();
 	});
 	connect( m_pTarget, &QTcpSocket::disconnected, this, [this](){
-		app::setLog(6,QString("Client::Target disconnected"));
+		//app::setLog(6,QString("Client::Target disconnected"));
 		slot_stop();
 	});
 }
 
 void Client::run()
 {
-	app::setLog( 4, QString("Client::Client connected [%1:%2]").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ) );
+	//app::setLog( 4, QString("Client::Client connected [%1:%2]").arg( m_pClient->peerAddress().toString() ).arg( m_pClient->peerPort() ) );
 	m_proto = Client::Proto::UNKNOWN;
 }
 
@@ -42,7 +42,7 @@ void Client::slot_stop()
 	if( m_pTarget->isOpen() ) m_pTarget->close();
 	if( m_pClient->isOpen() ) m_pClient->close();
 
-	if( m_auth ) app::removeUserConnection( m_userLogin, m_targetHostStr );
+	//if( m_auth ) app::removeUserConnection( m_userLogin, m_targetHostStr );
 
 	emit signal_finished();
 }
@@ -56,7 +56,7 @@ void Client::slot_clientReadyRead()
 		if( m_pTarget->isOpen() && m_tunnel ){
 			sendToTarget( buff );
 			//TODO: Переделать лог
-			app::setLog(5,QString("ProxyClient::slot_targetReadyRead [%1:%2]").arg(m_pTarget->peerAddress().toString()).arg(m_pTarget->peerPort()));
+			//app::setLog(5,QString("ProxyClient::slot_targetReadyRead [%1:%2]").arg(m_pTarget->peerAddress().toString()).arg(m_pTarget->peerPort()));
 			if( m_auth ) app::addBytesOutTraffic( m_pTarget->peerAddress().toString(), m_userLogin, buff.size() );
 			buff.clear();
 		}
@@ -65,8 +65,8 @@ void Client::slot_clientReadyRead()
 	// Если данные уже отправили выходим
 	if( buff.size() == 0 ) return;
 
-	app::setLog(5,QString("ProxyClient::slot_clientReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
-	app::setLog(6,QString("ProxyClient::slot_clientReadyRead [%3]").arg(QString(buff.toHex())));
+	//app::setLog(5,QString("ProxyClient::slot_clientReadyRead %1 bytes [%2]").arg(buff.size()).arg(QString(buff)));
+	//app::setLog(6,QString("ProxyClient::slot_clientReadyRead [%3]").arg(QString(buff.toHex())));
 
 	if( m_proto == Client::Proto::UNKNOWN ) isSocksRequest( buff );
 	if( m_proto == Client::Proto::SOCKS4 || m_proto == Client::Proto::SOCKS5 ){
@@ -103,7 +103,7 @@ void Client::sendResponse(const uint16_t code, const QString &comment)
 	pkt.head.response.code = code;
 	pkt.head.response.comment = comment;
 	pkt.body.rawData.append( app::getHtmlPage("Service page",comment.toLatin1()) );
-	app::setLog( 5, QString("ProxyClient::sendResponse [%1]").arg(pkt.head.response.code) );
+	//app::setLog( 5, QString("ProxyClient::sendResponse [%1]").arg(pkt.head.response.code) );
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -114,7 +114,7 @@ void Client::sendRawResponse(const uint16_t code, const QString &comment, const 
 	pkt.head.response.comment = comment;
 	if( !mimeType.isEmpty() ) pkt.head.contType = mimeType;
 	pkt.body.rawData.append( data );
-	app::setLog( 5, QString("ProxyClient::sendRawResponse [%1]" ).arg(pkt.head.response.code));
+	//app::setLog( 5, QString("ProxyClient::sendRawResponse [%1]" ).arg(pkt.head.response.code));
 	sendToClient( http::buildPkt(pkt) );
 }
 
@@ -125,8 +125,8 @@ void Client::sendToClient(const QByteArray &data)
 	if( m_pClient->state() == QAbstractSocket::UnconnectedState ) return;
 	m_pClient->write(data);
 	m_pClient->waitForBytesWritten(100);
-	app::setLog(5,QString("ProxyClient::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data)));
-	app::setLog(6,QString("ProxyClient::sendToClient [%3]").arg(QString(data.toHex())));
+	//app::setLog(5,QString("ProxyClient::sendToClient %1 bytes [%2]").arg(data.size()).arg(QString(data)));
+	//app::setLog(6,QString("ProxyClient::sendToClient [%3]").arg(QString(data.toHex())));
 }
 
 void Client::sendToTarget(const QByteArray &data)
@@ -143,15 +143,15 @@ void Client::sendToTarget(const QByteArray &data)
 	}
 	m_pTarget->waitForBytesWritten(100);
 
-	app::setLog(5,QString("ProxyClient::sendToTarget %1 bytes [%2]").arg(data.size()).arg(QString(data)));
-	app::setLog(6,QString("ProxyClient::sendToTarget [%2]").arg(QString(data.toHex())));
+	//app::setLog(5,QString("ProxyClient::sendToTarget %1 bytes [%2]").arg(data.size()).arg(QString(data)));
+	//app::setLog(6,QString("ProxyClient::sendToTarget [%2]").arg(QString(data.toHex())));
 }
 
 void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 {
 	if( !pkt.isRequest ) return;
 
-	app::setLog( 4, QString("ProxyClient::parsHttpProxy %1 %2").arg( pkt.head.request.method ).arg( pkt.head.request.target ));
+	//app::setLog( 4, QString("ProxyClient::parsHttpProxy %1 %2").arg( pkt.head.request.method ).arg( pkt.head.request.target ));
 
 	if( pkt.head.request.method == "CONNECT" ) m_proto = Client::Proto::HTTPS;
 	if( pkt.head.request.method == "GET" || pkt.head.request.method == "POST" ) m_proto = Client::Proto::HTTP;
@@ -187,7 +187,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	switch ( m_proto ) {
 		case Client::Proto::HTTPS:
 			m_targetHostStr = pkt.head.request.target;
-			app::setLog(4,QString("ProxyClient::parsHttpProxy HTTPS Request to [%1]").arg( m_targetHostStr ));
+			//app::setLog(4,QString("ProxyClient::parsHttpProxy HTTPS Request to [%1]").arg( m_targetHostStr ));
 			m_targetHostPort = 443;
 		break;
 		case Client::Proto::HTTP:
@@ -202,7 +202,7 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 				pkt.head.request.target.replace( " ", "%20" );
 			}
 
-			app::setLog(4,QString("ProxyClient::parsHttpProxy HTTP Request to [%1] %2").arg( m_targetHostStr ).arg( pkt.head.request.target ));
+			//app::setLog(4,QString("ProxyClient::parsHttpProxy HTTP Request to [%1] %2").arg( m_targetHostStr ).arg( pkt.head.request.target ));
 			pkt.head.proxyAuthorization.clear();
 			pkt.head.connection = "close";
 			m_targetHostPort = 80;
@@ -307,10 +307,10 @@ void Client::parsHttpProxy(http::pkt &pkt, const int32_t sizeInData)
 	if( !m_tunnel ){
 		sendResponse( 502, "Bad Gateway" );
 		return;
-	}else{
-		if( m_proto == Client::Proto::HTTP )	m_targetHostStr = QString("http://%1%2").arg( m_targetHostStr ).arg( pkt.head.request.target );
-		if( m_proto == Client::Proto::HTTPS )	m_targetHostStr = QString("https://%1").arg( m_targetHostStr );
-		app::addUserConnection( m_userLogin, m_targetHostStr );
+//	}else{
+//		if( m_proto == Client::Proto::HTTP )	m_targetHostStr = QString("http://%1%2").arg( m_targetHostStr ).arg( pkt.head.request.target );
+//		if( m_proto == Client::Proto::HTTPS )	m_targetHostStr = QString("https://%1").arg( m_targetHostStr );
+//		app::addUserConnection( m_userLogin, m_targetHostStr );
 	}
 }
 
@@ -319,13 +319,13 @@ void Client::parsAuth(const QString &string, const QString &method)
 	app::setLog(5,QString("ProxyClient::parsAuth [%1]").arg(string));
 
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(2,QString("ProxyClient::parsAuth unknown proto"));
+		//app::setLog(2,QString("ProxyClient::parsAuth unknown proto"));
 		return;
 	}
 
 	if( m_proto == Client::Proto::HTTP || m_proto == Client::Proto::HTTPS ){
 		auto auth = http::parsAuthString( string.toUtf8() );
-		app::setLog(4,QString("ProxyClient::parsAuth method %1").arg(auth.method));
+		//app::setLog(4,QString("ProxyClient::parsAuth method %1").arg(auth.method));
 
 		if( auth.method == http::AuthMethod::Basic && app::conf.httpAuthMethod == http::AuthMethod::Basic ){
 			QByteArray decodeStr = QByteArray::fromBase64( auth.BasicString );
@@ -378,7 +378,7 @@ void Client::parsAuth(const QString &string, const QString &method)
 void Client::sendNoAuth()
 {
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(2,QString("ProxyClient::sendNoAuth unknown proto"));
+		//app::setLog(2,QString("ProxyClient::sendNoAuth unknown proto"));
 		return;
 	}
 
@@ -398,7 +398,7 @@ void Client::sendNoAuth()
 void Client::sendNoAccess()
 {
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(2,QString("ProxyClient::sendNoAccess unknown proto"));
+		//app::setLog(2,QString("ProxyClient::sendNoAccess unknown proto"));
 		return;
 	}
 
@@ -431,7 +431,7 @@ void Client::sendNoAccess()
 void Client::moveToLockedPage(const QString &reffer)
 {
 	if( m_proto == Client::Proto::UNKNOWN ){
-		app::setLog(2,QString("ProxyClient::moveToLockedPage unknown proto"));
+		//app::setLog(2,QString("ProxyClient::moveToLockedPage unknown proto"));
 		return;
 	}
 
